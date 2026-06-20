@@ -1,0 +1,10 @@
+.agents/
+.codex/
+AGENTS.md
+CURRENT_WORK.md
+*.xlsx
+*.xls
+*.csv
+*.tsv
+*백업*.json
+세특메이커_*.json
