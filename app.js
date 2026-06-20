@@ -1612,6 +1612,22 @@ function getBatchColumnLabels(item) {
   ];
 }
 
+function normalizeBatchHeaderText(value) {
+  return String(value ?? '').trim().replace(/\s+/g, ' ');
+}
+
+function isBatchHeaderRow(row, evidenceLabel = DEFAULT_EVIDENCE_LABEL) {
+  const cells = (row || []).map(normalizeBatchHeaderText);
+  const firstCell = cells[0] || '';
+  const secondCell = cells[1] || '';
+  const expectedEvidenceLabel = normalizeBatchHeaderText(evidenceLabel);
+  const hasIdentifierHeader = /^(?:교사용\s*)?번호\s*\/\s*(?:구분|표시)(?:\s*\(수정 가능\))?$/u.test(firstCell);
+
+  if (hasIdentifierHeader && secondCell === expectedEvidenceLabel) return true;
+  return cells.length === 1
+    && /학생\s*관찰\s*근거/u.test(firstCell)
+    && /학생\s*관찰\s*근거/u.test(expectedEvidenceLabel);
+}
 function normalizeBatchCompetencies(value, item) {
   const source = String(value ?? '').toLowerCase();
   return getSubjectCompetencies(item)
@@ -1784,7 +1800,7 @@ function workbookRowsFromXml(entries, evidenceLabel = DEFAULT_EVIDENCE_LABEL) {
     });
     return values.map(value => String(value ?? '').trim());
   });
-  const headerIndex = rows.findIndex(row => row.some(value => value === evidenceLabel || /학생\s*관찰\s*근거/u.test(value)));
+  const headerIndex = rows.findIndex(row => isBatchHeaderRow(row, evidenceLabel));
   if (headerIndex < 0) throw new Error('header-missing');
   return rows.slice(headerIndex + 1).filter(row => row.some(value => value.trim())).slice(0, 40);
 }
@@ -1942,7 +1958,7 @@ function applyBatchPaste() {
   if (!raw) return showToast('엑셀에서 복사한 내용을 붙여넣어 주세요.');
   const lines = raw.split(/\r?\n/).filter(line => line.trim());
   let rows = lines.map(line => line.split('\t'));
-  if (/교사용|번호|관찰\s*근거/u.test(rows[0]?.join(' ') || '')) rows = rows.slice(1);
+  if (isBatchHeaderRow(rows[0], item.evidenceLabel)) rows = rows.slice(1);
   if (replaceBatchRows(item, rows, '붙여넣은 표')) $('#batchPasteInput').value = '';
 }
 
