@@ -1,4 +1,4 @@
-﻿const STORAGE_KEY = 'subject-record-maker-assessments-v1';
+const STORAGE_KEY = 'subject-record-maker-assessments-v1';
 const BATCH_STORAGE_KEY = 'subject-record-maker-batch-drafts-v1';
 const RECOVERY_STORAGE_KEY = 'subject-record-maker-recovery-v1';
 const DEFAULT_SUBJECT_AREA = Object.keys(SUBJECT_PROFILES)[0] || '';
@@ -1991,7 +1991,18 @@ async function importBatchWorkbook(file) {
 }
 
 function getFilledBatchRows(draft) {
-  return draft.rows.map((row, index) => ({ row, studentNumber: index + 1 })).filter(entry => entry.row.evidence.trim());
+  return draft.rows.map((row, index) => ({
+    row,
+    studentNumber: index + 1,
+    studentLabel: formatBatchStudentLabel(row.localLabel, index + 1)
+  })).filter(entry => entry.row.evidence.trim());
+}
+
+function formatBatchStudentLabel(localLabel, fallbackNumber) {
+  let label = String(localLabel || '').trim() || String(fallbackNumber);
+  label = label.replace(/^학생\s*/u, '').trim();
+  if (/^\d+$/u.test(label)) label = label.padStart(2, '0');
+  return `학생 ${label}`;
 }
 
 function resetBatchOffline() {
@@ -2016,7 +2027,7 @@ function generateBatchOfflineDrafts() {
   const entries = getFilledBatchRows(draft);
   if (!entries.length) return showToast(`‘${item.evidenceLabel}’ 항목을 한 명 이상 입력해 주세요.`);
   const previousVariant = variant;
-  const records = entries.map(({ row, studentNumber }, index) => {
+  const records = entries.map(({ row, studentLabel }, index) => {
     variant = index;
     const fieldEntries = item.optionalFields.map(field => ({
       ...field,
@@ -2033,8 +2044,7 @@ function generateBatchOfflineDrafts() {
       achievement: row.achievement,
       length: draft.length
     });
-    const label = row.localLabel.trim() || `학생 ${String(studentNumber).padStart(2, '0')}`;
-    return `[${label}]\n${record}`;
+    return `[${studentLabel}]\n${record}`;
   });
   variant = previousVariant;
   const result = $('#batchOfflineResult');
@@ -2053,7 +2063,7 @@ function buildBatchPrompt(item, entries, draft) {
     const standard = ACHIEVEMENT_STANDARDS[item.subject]?.find(entry => entry.code === code);
     return standard ? `[${standard.code}] ${standard.text}` : '';
   }).filter(Boolean).join('\n');
-  const studentBlocks = entries.map(({ row, studentNumber }) => {
+  const studentBlocks = entries.map(({ row, studentLabel }) => {
     const optionalLines = item.optionalFields
       .filter(field => (row.optional[field.id] || '').trim())
       .map(field => `- ${field.label}: ${row.optional[field.id].trim()}`)
@@ -2061,16 +2071,16 @@ function buildBatchPrompt(item, entries, draft) {
     const competencyLine = getSubjectCompetencies(item).length
       ? `- 강조할 ${SUBJECT_PROFILES[getSubjectArea(item)].label} 핵심역량: ${row.competencies.trim() || '선택하지 않음'}\n`
       : '';
-    return `## 학생 ${String(studentNumber).padStart(2, '0')}\n- ${item.evidenceLabel}: ${row.evidence.trim()}\n${optionalLines ? `${optionalLines}\n` : ''}- 성취 수준: ${achievementNames[row.achievement] || '선택하지 않음'}\n${competencyLine}- 희망 분량: ${lengthNames[draft.length]}`;
+    return `## ${studentLabel}\n- ${item.evidenceLabel}: ${row.evidence.trim()}\n${optionalLines ? `${optionalLines}\n` : ''}- 성취 수준: ${achievementNames[row.achievement] || '선택하지 않음'}\n${competencyLine}- 희망 분량: ${lengthNames[draft.length]}`;
   }).join('\n\n');
-  const outputLabels = entries.map(({ studentNumber }) => `[학생 ${String(studentNumber).padStart(2, '0')}]\n(완성된 세특 한 문단)`).join('\n\n');
+  const outputLabels = entries.map(({ studentLabel }) => `[${studentLabel}]\n(완성된 세특 한 문단)`).join('\n\n');
   const styleReferenceContent = draft.styleReference.trim()
     ? `# 문체 기준 잠금\n아래 문장은 문장 길이, 어조, 구성만 참고하는 예시입니다. 예시 속 학생의 행동·성과·주제·수치 등 내용은 이번 학생들에게 절대 옮기지 마세요.\n\n${draft.styleReference.trim()}\n`
     : `# 문체 기준 잠금\n모든 학생에게 품격 있는 교사 관찰 문체, 현재형 명사형 종결(~함·~음·~임), 비슷한 문장 밀도와 완성도를 일관되게 적용하세요.\n`;
   const styleReference = `${buildPromptFocusSection(item)}${styleReferenceContent}`;
 
   const subjectLabel = SUBJECT_PROFILES[getSubjectArea(item)]?.label || '교과';
-  return `# 역할\n한국 고등학교 ${getSubjectWritingProfile(item).role}의 관점에서 아래 학생별 원본 자료를 바탕으로 교과세부능력 및 특기사항을 작성하세요.\n\n# 수행평가 공통 정보\n- 과목: ${getSubjectPath(item)}\n- 수행평가명: ${item.name}\n- 수행평가 활동: ${item.activity}\n\n# 성취기준 — 내부 참고용\n${standards || '등록된 성취기준 없음'}\n\n${buildWritingGuide(item)}\n\n${styleReference}\n# 학급 일괄 작성 추가 규칙\n1. 각 학생을 서로 완전히 독립된 기록으로 처리하고 다른 학생의 행동·평가·주제를 섞지 마세요.\n2. 앞 학생과 뒤 학생의 글자 수, 문장 밀도, 문체 완성도를 같은 기준으로 유지하세요. 뒤쪽 학생을 더 짧게 쓰거나 형식을 생략하지 마세요.\n3. 문체 기준 예시는 문장 길이·어조·구성만 참고하고, 예시 속 학생의 행동·성과·주제·수치 등 내용은 옮기지 마세요.\n4. 설명, 제목, 작성 이유 없이 학생별 완성 문단만 출력하세요.\n\n# 학생별 원본 자료\n${studentBlocks}\n\n# 출력 형식\n아래 번호와 순서를 정확히 지키고 모든 학생을 빠짐없이 출력하세요.\n\n${outputLabels}\n\n출력 전에 사실 추가 여부, 학생 간 정보 혼합, 뒤쪽 학생 분량 축소, 금지 주어, 관찰 불가능한 표현, 종결 어미, 성취기준 노출, 문체 변화, 형식 누락이 없는지 점검하세요.`;
+  return `# 역할\n한국 고등학교 ${getSubjectWritingProfile(item).role}의 관점에서 아래 학생별 원본 자료를 바탕으로 교과세부능력 및 특기사항을 작성하세요.\n\n# 수행평가 공통 정보\n- 과목: ${getSubjectPath(item)}\n- 수행평가명: ${item.name}\n- 수행평가 활동: ${item.activity}\n\n# 성취기준 — 내부 참고용\n${standards || '등록된 성취기준 없음'}\n\n${buildWritingGuide(item)}\n\n${styleReference}\n# 학급 일괄 작성 추가 규칙\n1. 각 학생을 서로 완전히 독립된 기록으로 처리하고 다른 학생의 행동·평가·주제를 섞지 마세요.\n2. 앞 학생과 뒤 학생의 글자 수, 문장 밀도, 문체 완성도를 같은 기준으로 유지하세요. 뒤쪽 학생을 더 짧게 쓰거나 형식을 생략하지 마세요.\n3. 문체 기준 예시는 문장 길이·어조·구성만 참고하고, 예시 속 학생의 행동·성과·주제·수치 등 내용은 옮기지 마세요.\n4. 설명, 제목, 작성 이유 없이 학생별 완성 문단만 출력하세요.\n5. 학생 식별 번호는 원본 자료에 표시된 번호를 그대로 유지하고, 결번이 있어도 순서대로 다시 번호를 매기지 마세요.\n\n# 학생별 원본 자료\n${studentBlocks}\n\n# 출력 형식\n아래 학생 번호와 순서를 정확히 지키고 모든 학생을 빠짐없이 출력하세요.\n\n${outputLabels}\n\n출력 전에 사실 추가 여부, 학생 간 정보 혼합, 학생 번호 유지, 뒤쪽 학생 분량 축소, 금지 주어, 관찰 불가능한 표현, 종결 어미, 성취기준 노출, 문체 변화, 형식 누락이 없는지 점검하세요.`;
 }
 
 function renderBatchChunks(item, draft) {
@@ -2091,7 +2101,7 @@ function renderBatchChunks(item, draft) {
     card.className = 'batch-chunk-card';
     const header = document.createElement('header');
     const title = document.createElement('strong');
-    title.textContent = `학생 ${String(entries[0].studentNumber).padStart(2, '0')}~${String(entries.at(-1).studentNumber).padStart(2, '0')}`;
+    title.textContent = `학생 ${entries.map(entry => entry.studentLabel.replace(/^학생\s*/u, '')).join(', ')}`;
     const status = document.createElement('small');
     status.textContent = `${entries.length}명 · ${draft.styleReference.trim() ? '문체 잠금 적용' : '기본 문체'}`;
     header.append(title, status);
@@ -2212,22 +2222,3 @@ window.setTimeout(() => {
   createRecoverySnapshot('앱 시작 시 자동 보관', true);
   updateDataSafetyStatus();
 }, 0);
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
