@@ -10,7 +10,7 @@
   <link rel="stylesheet" href="guide.css" />
   <link rel="stylesheet" href="home.css?v=20260619-1" />
   <link rel="stylesheet" href="backup.css?v=20260619-3" />
-  <link rel="stylesheet" href="batch.css?v=20260620-8" />
+  <link rel="stylesheet" href="batch.css?v=20260621-11" />
 </head>
 <body>
   <main class="shell">
@@ -325,7 +325,7 @@
             <div class="batch-or"><span><strong>또는</strong><small>둘 중 하나만 선택</small></span></div>
             <textarea id="batchPasteInput" rows="5" placeholder="엑셀에서 여러 행을 복사한 뒤 여기에 붙여넣으세요."></textarea>
             <button type="button" id="applyBatchPaste" class="outline-button">붙여넣은 표 반영하기</button>
-            <small>현재 학생별 수행 정보 표에 입력된 번호·관찰 근거·작성 항목·성취수준과 해당 교과군의 핵심역량이 함께 저장됩니다. 열 제목은 바꾸지 말아 주세요.</small>
+            <small>항목 이름을 바꾸려면 아래 직접 입력 표의 제목을 클릭한 뒤 ✓로 저장하세요. 엑셀 표는 화면에 안내된 열 순서를 그대로 사용해 주세요.</small>
           </section>
 
           <section class="batch-method-card batch-direct-panel">
@@ -335,6 +335,15 @@
               <div id="batchBulkCompetencies" class="batch-bulk-picker"></div>
               <div class="batch-bulk-actions"><button type="button" id="applyBulkCompetencies" class="outline-button">선택 역량 전체 적용</button><button type="button" id="clearBulkCompetencies" class="ghost-button">전체 학생 역량 해제</button></div>
             </section>
+            <aside class="batch-example-guide" aria-label="학급 입력 예시">
+              <div class="batch-example-guide-heading"><strong>입력 예시</strong><p>항목 이름은 <b>탐구 함수</b>, <b>탐구 이유</b>처럼 바꿀 수 있고, 내용은 짧은 핵심어만 입력해도 됩니다.</p></div>
+              <div class="batch-example-guide-scroll">
+                <table class="batch-example-guide-table">
+                  <thead><tr><th>번호 / 구분</th><th>학생 관찰 근거(학생 활동 내용)</th><th>탐구 함수</th><th>탐구 이유</th><th>성취 수준</th><th>핵심역량</th></tr></thead>
+                  <tbody><tr><td>1</td><td>시간에 따른 약물 농도 감소를 지수함수로 표현</td><td>지수함수</td><td>화학 분야 관심과 연결해 조사</td><td>매우 우수</td><td>연결, 정보처리</td></tr></tbody>
+                </table>
+              </div>
+            </aside>
             <div id="batchTableContainer" class="batch-table-container"></div>
           </section>
 
@@ -409,10 +418,10 @@
   </div>
 
   <div id="toast" class="toast" role="status"></div>
-  <script src="subject-data.js"></script>
-  <script src="standards.js"></script>
+  <script src="subject-data.js?v=20260621-1"></script>
+  <script src="standards.js?v=20260621-1"></script>
   <script src="competencies.js?v=20260620-1"></script>
-  <script src="writing-profiles.js?v=20260620-1"></script>
-  <script src="app.js?v=20260621-2"></script>
+  <script src="writing-profiles.js?v=20260621-2"></script>
+  <script src="app.js?v=20260621-7"></script>
 </body>
 </html>

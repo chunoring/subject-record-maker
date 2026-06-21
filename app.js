@@ -27,11 +27,23 @@ function getSubjectArea(itemOrArea) {
   return itemOrArea?.subjectArea || findSubjectArea(itemOrArea?.subject || '');
 }
 
+function getSubjectCourseProfile(itemOrArea) {
+  if (!itemOrArea || typeof itemOrArea !== 'object') return null;
+  return SUBJECT_PROFILES[getSubjectArea(itemOrArea)]?.courses
+    ?.find(course => course.value === itemOrArea.subject) || null;
+}
+
 function getSubjectCompetencies(itemOrArea) {
+  const course = getSubjectCourseProfile(itemOrArea);
+  if (course && Array.isArray(course.competencies)) return course.competencies;
   return SUBJECT_PROFILES[getSubjectArea(itemOrArea)]?.competencies || [];
 }
 
 function getSubjectWritingProfile(itemOrArea) {
+  const course = getSubjectCourseProfile(itemOrArea);
+  if (course?.writingProfile && SUBJECT_WRITING_PROFILES[course.writingProfile]) {
+    return SUBJECT_WRITING_PROFILES[course.writingProfile];
+  }
   return SUBJECT_PROFILES[getSubjectArea(itemOrArea)]?.writingProfile
     || SUBJECT_WRITING_PROFILES.math;
 }
@@ -1814,17 +1826,129 @@ function createBatchTextControl(value, placeholder, onInput, multiline = true) {
   return control;
 }
 
+function saveBatchHeaderLabel(item, fieldId, value) {
+  const label = clean(value).slice(0, 40);
+  if (!label) {
+    showToast('항목 이름을 입력해 주세요.');
+    return false;
+  }
+
+  const field = fieldId ? item.optionalFields.find(candidate => candidate.id === fieldId) : null;
+  if (fieldId && !field) return false;
+  const previousLabel = field ? field.label : item.evidenceLabel;
+  if (label === previousLabel) {
+    renderBatchTable(item, getBatchDraft(item));
+    return true;
+  }
+
+  const otherLabels = [
+    ...(fieldId ? [item.evidenceLabel] : []),
+    ...item.optionalFields.filter(candidate => candidate.id !== fieldId).map(candidate => candidate.label)
+  ];
+  if (otherLabels.includes(label)) {
+    showToast('필수 항목과 선택 항목의 이름은 서로 다르게 입력해 주세요.');
+    return false;
+  }
+
+  const previousUpdatedAt = item.updatedAt;
+  if (field) field.label = label;
+  else item.evidenceLabel = label;
+  item.updatedAt = new Date().toISOString();
+  if (!saveAssessments()) {
+    if (field) field.label = previousLabel;
+    else item.evidenceLabel = previousLabel;
+    item.updatedAt = previousUpdatedAt;
+    return false;
+  }
+
+  if ($('#assessmentSelect').value === item.id) renderSelectedAssessment();
+  $('#batchOfflineEmpty').textContent = `‘${item.evidenceLabel}’ 항목을 입력한 뒤 보조 초안을 만들 수 있습니다.`;
+  updateBatchPasteGuide(item);
+  resetBatchOffline();
+  const draft = getBatchDraft(item);
+  renderBatchTable(item, draft);
+  renderBatchChunks(item, draft);
+  showToast(`항목 이름을 ‘${label}’로 수정했습니다.`);
+  return true;
+}
+
+function appendBatchEditableHeader(headRow, item, fieldId = '') {
+  const field = fieldId ? item.optionalFields.find(candidate => candidate.id === fieldId) : null;
+  const label = field ? field.label : item.evidenceLabel;
+  const th = document.createElement('th');
+  th.className = 'batch-editable-heading';
+  const openEditor = document.createElement('button');
+  openEditor.type = 'button';
+  openEditor.className = 'batch-heading-open';
+  openEditor.title = '클릭하여 항목 이름 수정';
+  openEditor.setAttribute('aria-label', `${label} 항목 이름 수정`);
+  const text = document.createElement('span');
+  text.textContent = field ? label : `${label}(필수)`;
+  const editIcon = document.createElement('i');
+  editIcon.textContent = '✎';
+  editIcon.setAttribute('aria-hidden', 'true');
+  openEditor.append(text, editIcon);
+
+  openEditor.addEventListener('click', () => {
+    th.classList.add('is-editing');
+    const editor = document.createElement('div');
+    editor.className = 'batch-heading-editor';
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.maxLength = 40;
+    input.value = label;
+    input.setAttribute('aria-label', `${label} 항목 이름`);
+    const confirmButton = document.createElement('button');
+    confirmButton.type = 'button';
+    confirmButton.className = 'batch-heading-confirm';
+    confirmButton.title = '수정 내용 저장';
+    confirmButton.setAttribute('aria-label', '수정 내용 저장');
+    confirmButton.textContent = '✓';
+    const closeEditor = () => {
+      document.removeEventListener('pointerdown', closeWhenClickingOutside);
+      th.classList.remove('is-editing');
+      th.replaceChildren(openEditor);
+    };
+    const closeWhenClickingOutside = event => {
+      if (!th.contains(event.target)) closeEditor();
+    };
+    confirmButton.addEventListener('click', () => {
+      document.removeEventListener('pointerdown', closeWhenClickingOutside);
+      if (!saveBatchHeaderLabel(item, fieldId, input.value)) {
+        document.addEventListener('pointerdown', closeWhenClickingOutside);
+      }
+    });
+    input.addEventListener('keydown', event => {
+      if (event.key === 'Escape') closeEditor();
+      if (event.key === 'Enter') event.preventDefault();
+    });
+    editor.append(input, confirmButton);
+    th.replaceChildren(editor);
+    input.focus();
+    input.select();
+    setTimeout(() => document.addEventListener('pointerdown', closeWhenClickingOutside), 0);
+  });
+
+  th.append(openEditor);
+  headRow.append(th);
+}
 function renderBatchTable(item, draft) {
   const container = $('#batchTableContainer');
   const table = document.createElement('table');
   table.className = 'batch-table';
   const head = document.createElement('thead');
   const headRow = document.createElement('tr');
-  ['번호 / 구분(수정 가능)', `${item.evidenceLabel}(필수)`, ...item.optionalFields.map(field => field.label), '성취 수준', ...(getSubjectCompetencies(item).length ? ['핵심역량(선택)'] : []), '삭제'].forEach(label => {
+  const appendFixedHeader = label => {
     const th = document.createElement('th');
     th.textContent = label;
     headRow.append(th);
-  });
+  };
+  appendFixedHeader('번호 / 구분(수정 가능)');
+  appendBatchEditableHeader(headRow, item);
+  item.optionalFields.forEach(field => appendBatchEditableHeader(headRow, item, field.id));
+  appendFixedHeader('성취 수준');
+  if (getSubjectCompetencies(item).length) appendFixedHeader('핵심역량(선택)');
+  appendFixedHeader('삭제');
   head.append(headRow);
   table.append(head);
 

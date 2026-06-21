@@ -60,9 +60,27 @@
 .batch-bulk-picker input:focus-visible + span { outline: 2px solid #8db8a4; outline-offset: 2px; }
 .batch-bulk-actions { display: flex; gap: 6px; }
 .batch-bulk-actions button { padding: 9px 11px; font-size: 9px; white-space: nowrap; }
+.batch-example-guide { margin: 0 0 12px; padding: 11px; border: 1px solid #cfe0d6; border-radius: 12px; background: #f6faf7; }
+.batch-example-guide-heading { display: flex; flex-wrap: wrap; align-items: baseline; gap: 5px 8px; margin-bottom: 8px; }
+.batch-example-guide-heading strong { flex: 0 0 auto; color: var(--green); font-size: 11px; }
+.batch-example-guide-heading p { margin: 0; color: #65756c; font-size: 9px; line-height: 1.45; }
+.batch-example-guide-scroll { width: 100%; overflow-x: auto; border: 1px solid #dbe6df; border-radius: 9px; background: #fff; -webkit-overflow-scrolling: touch; }
+.batch-example-guide-table { width: 100%; min-width: 900px; border-spacing: 0; border-collapse: separate; font-size: 9px; }
+.batch-example-guide-table th,.batch-example-guide-table td { padding: 8px 9px; border-right: 1px solid #e8eeea; text-align: left; white-space: nowrap; }
+.batch-example-guide-table th { color: #53645b; background: #eef5f0; font-weight: 800; }
+.batch-example-guide-table td { border-top: 1px solid #e2eae5; color: #44564c; }
+.batch-example-guide-table th:nth-child(2),.batch-example-guide-table td:nth-child(2) { min-width: 250px; white-space: normal; }
+.batch-example-guide-table th:last-child,.batch-example-guide-table td:last-child { border-right: 0; }
 .batch-table-container { width: 100%; max-width: 100%; min-width: 0; overflow-x: auto; overscroll-behavior-inline: contain; scrollbar-gutter: stable; border: 1px solid var(--line); border-radius: 13px; -webkit-overflow-scrolling: touch; }
 .batch-table { width: 100%; min-width: 980px; border-spacing: 0; border-collapse: separate; background: #fff; }
 .batch-table th { padding: 10px 8px; border-bottom: 1px solid var(--line); color: #53645b; background: #f2f6f3; font-size: 10px; text-align: left; white-space: nowrap; }
+.batch-heading-open { display: inline-flex; align-items: center; gap: 5px; max-width: 100%; padding: 5px 7px; border: 1px dashed transparent; border-radius: 7px; color: inherit; background: transparent; font: inherit; font-weight: 750; cursor: pointer; }
+.batch-heading-open:hover,.batch-heading-open:focus-visible { border-color: #9ec5b2; color: var(--green); background: #fff; outline: 0; }
+.batch-heading-open i { color: #6d9b84; font-size: 9px; font-style: normal; }
+.batch-heading-editor { display: grid; grid-template-columns: minmax(120px,1fr) 30px; align-items: center; gap: 4px; min-width: 166px; }
+.batch-table .batch-heading-editor input { width: 100%; height: 32px; padding: 0 7px; border: 1px solid #8db8a4; border-radius: 7px; background: #fff; font-size: 10px; }
+.batch-heading-confirm { width: 30px; height: 30px; padding: 0; border: 0; border-radius: 7px; color: #fff; background: var(--green); font-size: 14px; font-weight: 900; cursor: pointer; }
+.batch-editable-heading.is-editing { min-width: 220px; padding: 6px; }
 .batch-table td { min-width: 145px; padding: 7px; border-right: 1px solid #edf0ed; border-bottom: 1px solid #edf0ed; vertical-align: top; }
 .batch-table th:first-child,.batch-table td:first-child { position: sticky; left: 0; width: 104px; min-width: 104px; max-width: 104px; box-shadow: 5px 0 8px rgba(31,66,51,.08); }
 .batch-table th:first-child { z-index: 3; background: #eaf2ed; line-height: 1.35; white-space: normal; }
@@ -70,6 +88,7 @@
 .batch-table td.evidence-cell { min-width: 260px; }
 .batch-table tr:last-child td { border-bottom: 0; }
 .batch-table td:last-child,.batch-table th:last-child { width: 48px; min-width: 48px; border-right: 0; text-align: center; }
+
 .batch-table input,.batch-table select,.batch-table textarea { width: 100%; border: 1px solid #dce4de; border-radius: 8px; font-size: 11px; }
 .batch-table input,.batch-table select { height: 37px; padding: 0 9px; }
 .batch-table textarea { min-height: 76px; padding: 8px; line-height: 1.45; resize: vertical; }
