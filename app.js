@@ -2,6 +2,7 @@ const STORAGE_KEY = 'subject-record-maker-assessments-v1';
 const BATCH_STORAGE_KEY = 'subject-record-maker-batch-drafts-v1';
 const RECOVERY_STORAGE_KEY = 'subject-record-maker-recovery-v1';
 const BATCH_TIP_STORAGE_KEY = 'subject-record-maker-batch-tip-dismissed-v1';
+const DEFAULT_BATCH_ROW_COUNT = 10;
 const DEFAULT_SUBJECT_AREA = Object.keys(SUBJECT_PROFILES)[0] || '';
 
 function findSubjectArea(subject) {
@@ -468,7 +469,7 @@ function normalizeImportedBatchDraft(draft, item) {
   return {
     length: ['short', 'medium', 'long'].includes(draft.length) ? draft.length : 'medium',
     styleReference: typeof draft.styleReference === 'string' ? draft.styleReference.slice(0, 2000) : '',
-    rows: rows.length ? rows : Array.from({ length: 5 }, (_, index) => createBatchRow(index))
+    rows: rows.length ? rows : createDefaultBatchRows()
   };
 }
 
@@ -1548,6 +1549,10 @@ function createBatchRow(index = 0) {
   };
 }
 
+function createDefaultBatchRows() {
+  return Array.from({ length: DEFAULT_BATCH_ROW_COUNT }, (_, index) => createBatchRow(index));
+}
+
 function normalizeBatchRow(row, index, item) {
   const savedLabel = typeof row?.localLabel === 'string' ? row.localLabel.trim() : '';
   const legacyNumber = savedLabel.match(/^학생\s*(\d+)$/u)?.[1];
@@ -1567,15 +1572,23 @@ function getBatchDraft(item) {
     batchDrafts[item.id] = {
       length: 'medium',
       styleReference: '',
-      rows: Array.from({ length: 5 }, (_, index) => createBatchRow(index))
+      rows: createDefaultBatchRows()
     };
     saveBatchDrafts();
   } else {
     saved.length = ['short', 'medium', 'long'].includes(saved.length) ? saved.length : 'medium';
     saved.styleReference = typeof saved.styleReference === 'string' ? saved.styleReference : '';
-    saved.rows = Array.isArray(saved.rows) && saved.rows.length
+    const normalizedRows = Array.isArray(saved.rows) && saved.rows.length
       ? saved.rows.map((row, index) => normalizeBatchRow(row, index, item))
-      : Array.from({ length: 5 }, (_, index) => createBatchRow(index));
+      : createDefaultBatchRows();
+    if (normalizedRows.length === 5) {
+      const startIndex = normalizedRows.length;
+      normalizedRows.push(...Array.from(
+        { length: DEFAULT_BATCH_ROW_COUNT - startIndex },
+        (_, index) => createBatchRow(startIndex + index)
+      ));
+    }
+    saved.rows = normalizedRows;
   }
   return batchDrafts[item.id];
 }
@@ -2332,6 +2345,19 @@ $('#addBatchStudent').addEventListener('click', () => {
   renderBatchTable(item, draft);
   renderBatchChunks(item, draft);
 });
+$('#addFiveBatchRows').addEventListener('click', () => {
+  const item = assessments.find(assessment => assessment.id === $('#batchAssessmentSelect').value);
+  if (!item) return showToast('수행평가를 먼저 선택해 주세요.');
+  const draft = getBatchDraft(item);
+  const addCount = Math.min(5, 40 - draft.rows.length);
+  if (addCount <= 0) return showToast('한 학급은 최대 40명까지 입력할 수 있습니다.');
+  const startIndex = draft.rows.length;
+  draft.rows.push(...Array.from({ length: addCount }, (_, index) => createBatchRow(startIndex + index)));
+  saveBatchDrafts();
+  renderBatchTable(item, draft);
+  renderBatchChunks(item, draft);
+  showToast(`표 아래에 빈 행 ${addCount}개를 추가했습니다.`);
+});
 $('#clearBatchStudents').addEventListener('click', () => {
   const item = assessments.find(assessment => assessment.id === $('#batchAssessmentSelect').value);
   if (!item) return showToast('수행평가를 먼저 선택해 주세요.');
@@ -2339,7 +2365,7 @@ $('#clearBatchStudents').addEventListener('click', () => {
   const confirmed = confirm(`‘${item.name}’ 수행평가의 학생 입력 내용을 모두 삭제할까요?\n\n다른 수행평가의 학급 자료와 현재 분량·문체 기준은 유지됩니다.`);
   if (!confirmed) return;
   const previousRows = draft.rows;
-  draft.rows = Array.from({ length: 5 }, (_, index) => createBatchRow(index));
+  draft.rows = createDefaultBatchRows();
   if (!saveBatchDrafts()) {
     draft.rows = previousRows;
     return;
