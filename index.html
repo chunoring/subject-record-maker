@@ -19,12 +19,13 @@
   <title>교과 수행평가 세특 메이커</title>
   <link rel="canonical" href="https://chunoring.github.io/subject-record-maker/" />
   <link rel="icon" href="assets/favicon.svg" type="image/svg+xml" />
-  <link rel="stylesheet" href="styles.css?v=20260619-4" />
+  <link rel="stylesheet" href="styles.css?v=20260621-2" />
   <link rel="stylesheet" href="prompt.css?v=20260618-2" />
   <link rel="stylesheet" href="guide.css" />
   <link rel="stylesheet" href="home.css?v=20260619-1" />
   <link rel="stylesheet" href="backup.css?v=20260619-3" />
-  <link rel="stylesheet" href="batch.css?v=20260621-11" />
+  <link rel="stylesheet" href="batch.css?v=20260621-12" />
+  <link rel="stylesheet" href="batch-tip.css?v=20260621-3" />
 </head>
 <body>
   <main class="shell">
@@ -182,7 +183,7 @@
             <p>학생마다 입력할 내용을 구성하세요. 필수 항목은 이름을 바꿀 수 있지만 삭제할 수 없으며, 선택 항목은 삭제하거나 새로 추가할 수 있습니다.</p>
             <div class="content-field-row required-field-row">
               <div><span class="field-status required">필수</span><input type="text" id="assessmentEvidenceLabel" maxlength="40" value="학생 관찰 근거(학생 활동 내용)" aria-label="필수 작성 항목 이름" required /></div>
-              <span class="field-lock" title="필수 항목은 삭제할 수 없습니다">삭제 불가</span>
+              <div class="required-field-actions"><button type="button" id="editEvidenceLabel" class="field-edit-button" aria-controls="assessmentEvidenceLabel">✎ 편집</button><span class="field-lock" title="필수 항목은 삭제할 수 없습니다">삭제 불가</span></div>
             </div>
             <div id="optionalFieldConfig" class="optional-field-config"></div>
             <button type="button" id="addOptionalField" class="add-field-button">＋ 작성 항목 추가</button>
@@ -302,7 +303,7 @@
     <section id="batchView" class="view">
       <div class="section-title">
         <div><span class="kicker">CLASS MODE</span><h2>학급 일괄 작성</h2><p>여러 학생의 원본 자료를 한 번에 입력하고 안정적인 묶음 프롬프트로 복사하세요.</p></div>
-        <button type="button" id="backToIndividual" class="outline-button">개별 세특 작성</button>
+        <div class="batch-title-actions"><button type="button" id="openBatchTip" class="batch-tip-open-button">💡 학급 입력 TIP</button><button type="button" id="backToIndividual" class="outline-button">개별 세특 작성</button></div>
       </div>
 
       <section class="card batch-card">
@@ -362,6 +363,13 @@
           </section>
 
           <section class="batch-chunks-section">
+
+            <div class="batch-prompt-focus-editor">
+              <div class="batch-prompt-focus-heading"><span>프롬프트 조정 <i>수행평가와 연동</i></span><div><strong>AI 프롬프트 강조사항</strong><p>학급 내용을 작성하면서 필요한 강조사항을 수정하세요. 아래 묶음 프롬프트에 바로 반영됩니다.</p></div></div>
+              <textarea id="batchPromptFocus" rows="3" maxlength="600" placeholder="예: 탐구 주제와 탐구 과정이 구체적으로 드러나게 작성하고, 입력된 학생 활동만 근거로 활용해 주세요."></textarea>
+              <small id="batchPromptFocusStatus">선택한 수행평가의 강조사항과 자동으로 연결됩니다.</small>
+            </div>
+
             <div class="batch-chunks-heading"><span class="ai-badge">5명 단위 권장</span><div><strong>새 AI 대화방용 묶음 프롬프트</strong><p>각 버튼을 복사해 반드시 새 AI 대화방에 붙여넣으세요.</p></div></div>
             <div id="batchChunkList" class="batch-chunk-list"></div>
           </section>
@@ -431,11 +439,49 @@
     </section>
   </div>
 
+
+  <div id="batchTipModal" class="batch-tip-modal hidden" role="dialog" aria-modal="true" aria-labelledby="batchTipTitle">
+    <button type="button" id="batchTipBackdrop" class="batch-tip-backdrop" aria-label="학급 입력 TIP 닫기"></button>
+    <section class="batch-tip-panel">
+      <header class="batch-tip-header">
+        <div><span>학급 일괄 작성 TIP</span><h2 id="batchTipTitle"><em>더 쉽게!</em> 작성하는 방법!</h2><p>NotebookLM을 활용한 선택형 도움말입니다.</p></div>
+        <button type="button" id="closeBatchTip" class="batch-tip-close" aria-label="닫기">×</button>
+      </header>
+      <p class="batch-tip-optional-note"><strong>꼭 이 방법대로 할 필요는 없어요.</strong> 여러 학생의 자료를 더 빠르게 정리하고 싶을 때 참고하는 TIP입니다.</p>
+      <div class="batch-tip-progress"><strong id="batchTipStepLabel">1 / 4</strong><div id="batchTipDots" class="batch-tip-dots" aria-label="TIP 단계"></div></div>
+      <div class="batch-tip-viewport">
+        <div id="batchTipTrack" class="batch-tip-track">
+          <article class="batch-tip-slide">
+            <div class="batch-tip-copy"><b>STEP 1</b><h3>학생 산출물을 한 번에 정리하고 싶다면</h3><p>NotebookLM에서 학생 산출물 PDF나 문서를 소스로 추가해보세요. 업로드 전 이름·학번 등 개인정보는 반드시 제거하세요.</p><a class="batch-tip-external-link" href="https://notebooklm.google.com/" target="_blank" rel="noopener noreferrer">NotebookLM 바로가기 <span>↗</span></a></div>
+            <figure class="batch-tip-visual notebook-source"><img src="assets/batch-tip-notebooklm.png?v=20260621-2" alt="NotebookLM에 학생 산출물을 소스로 추가한 화면"></figure>
+          </article>
+          <article class="batch-tip-slide">
+            <div class="batch-tip-copy"><b>STEP 2</b><h3>앱의 입력 항목대로 표를 요청하세요</h3><p>예: “학번 / 도서명(저자) / 탐구 주제 / 탐구 내용 / 만든 문제 형식으로 내용을 상세하게 표로 정리해줘.”</p></div>
+            <figure class="batch-tip-visual notebook-chat"><img src="assets/batch-tip-notebooklm.png?v=20260621-2" alt="NotebookLM 채팅창에 세특 입력 항목을 표로 요청한 화면"><span>입력 항목 이름을 그대로 적어주세요</span></figure>
+          </article>
+          <article class="batch-tip-slide">
+            <div class="batch-tip-copy"><b>STEP 3</b><h3>표를 엑셀로 옮긴 뒤 붙여넣으세요</h3><p>NotebookLM이 만든 표를 엑셀에 붙여넣고 열을 확인한 다음, 이 앱의 ‘엑셀 표 한 번에 붙여넣기’에 그대로 넣을 수 있습니다.</p></div>
+            <div class="batch-tip-sheet" role="img" aria-label="학번, 도서명, 탐구 주제, 탐구 내용이 정리된 엑셀 표 예시"><div>학번</div><div>도서명(저자)</div><div>탐구 주제</div><div>탐구 내용</div><div>1</div><div>수학으로 읽는 세상</div><div>수학적 모델링</div><div>현상을 함수로 표현하고 타당성을 검토함</div><div>2</div><div>데이터로 생각하기</div><div>자료 분석</div><div>자료를 비교하고 해석 근거를 정리함</div></div>
+          </article>
+          <article class="batch-tip-slide">
+            <div class="batch-tip-copy"><b>STEP 4</b><h3>강조사항으로 원하는 형식을 알려주세요</h3><p>열 이름, 문장 시작 방식, 꼭 포함할 관찰 요소처럼 공통으로 지킬 형식을 ‘AI 프롬프트 강조사항’에 적으면 결과가 더 안정적입니다.</p></div>
+            <figure class="batch-tip-visual prompt-focus"><img src="assets/batch-tip-prompt-focus.png?v=20260621-2" alt="수행평가의 AI 프롬프트 강조사항 작성 예시"></figure>
+          </article>
+        </div>
+      </div>
+      <aside class="batch-tip-privacy"><strong>개인정보 주의</strong><span>외부 AI 서비스에 올리기 전 학생 이름·학번·연락처 등 식별정보를 제거하세요.</span></aside>
+      <footer class="batch-tip-footer">
+        <label><input type="checkbox" id="batchTipDontShow"> <span>다시 보지 않기</span></label>
+        <div><button type="button" id="batchTipPrev" class="batch-tip-prev">이전</button><button type="button" id="batchTipNext" class="batch-tip-next">다음</button></div>
+      </footer>
+    </section>
+  </div>
+
   <div id="toast" class="toast" role="status"></div>
   <script src="subject-data.js?v=20260621-1"></script>
   <script src="standards.js?v=20260621-1"></script>
   <script src="competencies.js?v=20260620-1"></script>
   <script src="writing-profiles.js?v=20260621-2"></script>
-  <script src="app.js?v=20260621-7"></script>
+  <script src="app.js?v=20260621-10"></script>
 </body>
 </html>

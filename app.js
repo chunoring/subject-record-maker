@@ -1,6 +1,7 @@
 const STORAGE_KEY = 'subject-record-maker-assessments-v1';
 const BATCH_STORAGE_KEY = 'subject-record-maker-batch-drafts-v1';
 const RECOVERY_STORAGE_KEY = 'subject-record-maker-recovery-v1';
+const BATCH_TIP_STORAGE_KEY = 'subject-record-maker-batch-tip-dismissed-v1';
 const DEFAULT_SUBJECT_AREA = Object.keys(SUBJECT_PROFILES)[0] || '';
 
 function findSubjectArea(subject) {
@@ -558,7 +559,10 @@ function switchView(name) {
   $$('.view').forEach(view => view.classList.toggle('active', view.id === `${name}View`));
   $$('.flow-nav .flow-step').forEach(step => step.classList.toggle('active', step.dataset.view === name));
   if (name === 'generate') renderAssessmentSelect();
-  if (name === 'batch') renderBatchAssessmentSelect();
+  if (name === 'batch') {
+    renderBatchAssessmentSelect();
+    maybeOpenBatchTip();
+  }
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
@@ -667,6 +671,17 @@ function collectOptionalFields() {
 }
 
 $('#addOptionalField').addEventListener('click', () => appendOptionalFieldRow());
+
+$('#editEvidenceLabel').addEventListener('click', () => {
+  const input = $('#assessmentEvidenceLabel');
+  input.focus();
+  input.select();
+  input.closest('.required-field-row').classList.add('is-editing');
+});
+$('#assessmentEvidenceLabel').addEventListener('blur', event => {
+  event.target.closest('.required-field-row').classList.remove('is-editing');
+});
+
 
 $('#assessmentForm').addEventListener('submit', event => {
   event.preventDefault();
@@ -1584,6 +1599,11 @@ function renderBatchAssessment() {
   $('#batchPasteInput').value = '';
   $('#batchStyleReference').value = '';
   $('#batchLength').value = 'medium';
+  $('#batchPromptFocus').value = item?.promptFocus || '';
+  $('#batchPromptFocus').disabled = !item;
+  $('#batchPromptFocusStatus').textContent = item
+    ? '선택한 수행평가의 강조사항과 연결되어 있습니다.'
+    : '수행평가를 선택하면 강조사항을 수정할 수 있습니다.';
   editor.dataset.assessmentId = item?.id || '';
   box.classList.toggle('hidden', !item);
   editor.classList.toggle('hidden', !item);
@@ -2273,6 +2293,26 @@ $('#batchLength').addEventListener('change', event => {
   saveBatchDrafts();
   renderBatchChunks(item, draft);
 });
+
+let batchPromptFocusSaveTimer = null;
+$('#batchPromptFocus').addEventListener('input', event => {
+  const item = assessments.find(assessment => assessment.id === $('#batchAssessmentSelect').value);
+  if (!item) return;
+  item.promptFocus = normalizePromptFocus(event.target.value);
+  if ($('#editingId').value === item.id) $('#assessmentPromptFocus').value = event.target.value;
+  const draft = getBatchDraft(item);
+  renderBatchChunks(item, draft);
+  $('#batchPromptFocusStatus').textContent = '묶음 프롬프트에 즉시 반영됨 · 수행평가에 저장하는 중입니다.';
+  window.clearTimeout(batchPromptFocusSaveTimer);
+  batchPromptFocusSaveTimer = window.setTimeout(() => {
+    if (!saveAssessments()) return;
+    renderAssessmentList();
+    if ($('#batchAssessmentSelect').value === item.id) {
+      $('#batchPromptFocusStatus').textContent = '수행평가 등록 내용에 저장되었습니다. 묶음 프롬프트를 다시 복사하세요.';
+    }
+  }, 450);
+});
+
 $('#batchStyleReference').addEventListener('input', event => {
   const item = assessments.find(assessment => assessment.id === $('#batchAssessmentSelect').value);
   if (!item) return;
@@ -2326,6 +2366,83 @@ $('#copyBatchOffline').addEventListener('click', async () => {
   showToast('학급 오프라인 보조 초안 전체를 복사했습니다.');
 });
 
+
+const batchTipModal = $('#batchTipModal');
+const batchTipSlides = $$('.batch-tip-slide');
+const batchTipDots = [];
+let batchTipStep = 0;
+let batchTipReturnFocus = null;
+let batchTipAutoShown = false;
+
+function getBatchTipDismissed() {
+  try { return localStorage.getItem(BATCH_TIP_STORAGE_KEY) === '1'; }
+  catch { return false; }
+}
+
+function saveBatchTipPreference() {
+  try {
+    if ($('#batchTipDontShow').checked) localStorage.setItem(BATCH_TIP_STORAGE_KEY, '1');
+    else localStorage.removeItem(BATCH_TIP_STORAGE_KEY);
+  } catch {}
+}
+
+function setBatchTipStep(nextStep) {
+  batchTipStep = Math.max(0, Math.min(batchTipSlides.length - 1, nextStep));
+  $('#batchTipTrack').style.transform = `translateX(-${batchTipStep * 100}%)`;
+  $('#batchTipStepLabel').textContent = `${batchTipStep + 1} / ${batchTipSlides.length}`;
+  batchTipSlides.forEach((slide, index) => slide.setAttribute('aria-hidden', String(index !== batchTipStep)));
+  batchTipDots.forEach((dot, index) => {
+    dot.classList.toggle('active', index === batchTipStep);
+    dot.setAttribute('aria-current', index === batchTipStep ? 'step' : 'false');
+  });
+  $('#batchTipPrev').disabled = batchTipStep === 0;
+  $('#batchTipNext').textContent = batchTipStep === batchTipSlides.length - 1 ? '학급 입력 시작' : '다음';
+}
+
+function openBatchTip() {
+  batchTipReturnFocus = document.activeElement;
+  $('#batchTipDontShow').checked = getBatchTipDismissed();
+  setBatchTipStep(0);
+  batchTipModal.classList.remove('hidden');
+  document.body.classList.add('modal-open');
+  $('#closeBatchTip').focus();
+}
+
+function closeBatchTip() {
+  saveBatchTipPreference();
+  batchTipModal.classList.add('hidden');
+  document.body.classList.remove('modal-open');
+  batchTipReturnFocus?.focus();
+}
+
+function maybeOpenBatchTip() {
+  if (batchTipAutoShown || getBatchTipDismissed()) return;
+  batchTipAutoShown = true;
+  window.setTimeout(() => {
+    if ($('#batchView').classList.contains('active')) openBatchTip();
+  }, 220);
+}
+
+batchTipSlides.forEach((_, index) => {
+  const dot = document.createElement('button');
+  dot.type = 'button';
+  dot.className = 'batch-tip-dot';
+  dot.setAttribute('aria-label', `${index + 1}단계 보기`);
+  dot.addEventListener('click', () => setBatchTipStep(index));
+  $('#batchTipDots').append(dot);
+  batchTipDots.push(dot);
+});
+setBatchTipStep(0);
+
+$('#openBatchTip').addEventListener('click', openBatchTip);
+$('#closeBatchTip').addEventListener('click', closeBatchTip);
+$('#batchTipBackdrop').addEventListener('click', closeBatchTip);
+$('#batchTipPrev').addEventListener('click', () => setBatchTipStep(batchTipStep - 1));
+$('#batchTipNext').addEventListener('click', () => {
+  if (batchTipStep === batchTipSlides.length - 1) closeBatchTip();
+  else setBatchTipStep(batchTipStep + 1);
+});
+
 const helpModal = $('#helpModal');
 let helpReturnFocus = null;
 
@@ -2348,6 +2465,12 @@ $('#closeHelp').addEventListener('click', closeHelp);
 $('#dismissHelp').addEventListener('click', closeHelp);
 $('#helpBackdrop').addEventListener('click', closeHelp);
 document.addEventListener('keydown', event => {
+  if (!batchTipModal.classList.contains('hidden')) {
+    if (event.key === 'Escape') closeBatchTip();
+    if (event.key === 'ArrowLeft') setBatchTipStep(batchTipStep - 1);
+    if (event.key === 'ArrowRight') setBatchTipStep(batchTipStep + 1);
+    return;
+  }
   if (event.key === 'Escape' && !helpModal.classList.contains('hidden')) closeHelp();
 });
 
