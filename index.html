@@ -313,15 +313,6 @@
         </label>
         <div id="batchSelectedAssessment" class="selected-assessment hidden"></div>
 
-        <section class="batch-reason-panel" aria-label="학급 프롬프트를 나누는 이유">
-          <header><span>왜 이렇게 나누나요?</span><strong>AI의 내용 혼합과 문체 흔들림을 줄이기 위해서입니다.</strong></header>
-          <div>
-            <article><b>1</b><strong>5명씩 새 대화방</strong><p>대화가 길어질수록 뒤쪽 학생의 글이 짧아지거나 앞 학생의 내용이 섞일 수 있습니다.</p></article>
-            <article><b>2</b><strong>같은 작성 규칙 반복</strong><p>각 묶음에 수행평가 정보와 출력 형식을 다시 넣어 대화가 달라도 기본 구조를 유지합니다.</p></article>
-            <article><b>3</b><strong>문체 기준 잠금 <i class="optional">선택</i></strong><p>필요한 경우에만 마음에 드는 결과를 기준 문장으로 넣어 다음 묶음의 문체를 맞춥니다.</p></article>
-          </div>
-        </section>
-
         <div id="batchEditorArea" class="hidden">
           <div class="batch-settings">
             <label class="field"><span>학급 공통 희망 분량</span><select id="batchLength"><option value="short">간결하게 (약 150자)</option><option value="medium" selected>보통 (약 250자)</option><option value="long">상세하게 (약 450자)</option></select></label>
@@ -370,8 +361,24 @@
               <small id="batchPromptFocusStatus">선택한 수행평가의 강조사항과 자동으로 연결됩니다.</small>
             </div>
 
+            <section class="batch-reason-panel" aria-label="학급 프롬프트를 나누는 이유">
+              <header><span>학급 전체를 입력하세요</span><strong>입력은 한 번에, AI용 프롬프트만 5명씩 자동으로 나뉩니다.</strong></header>
+              <div>
+                <article><b>1</b><strong>전체 학급 한 번에 입력</strong><p>엑셀이나 화면 표에 한 학급 학생을 모두 입력하세요. 5명만 입력하는 기능이 아닙니다.</p></article>
+                <article><b>2</b><strong>프롬프트만 5명씩 자동 분할</strong><p>입력한 전체 학생을 AI에 안정적으로 전달하도록 앱이 5명 단위 복사 버튼으로 나누어 줍니다.</p></article>
+                <article><b>3</b><strong>묶음별로 새 AI 대화방 사용</strong><p>학생 내용이 섞이거나 뒤쪽 학생의 글이 짧아지는 문제를 줄일 수 있습니다.</p></article>
+              </div>
+            </section>
+
             <div class="batch-chunks-heading"><span class="ai-badge">5명 단위 권장</span><div><strong>새 AI 대화방용 묶음 프롬프트</strong><p>각 버튼을 복사해 반드시 새 AI 대화방에 붙여넣으세요.</p></div></div>
             <div id="batchChunkList" class="batch-chunk-list"></div>
+          </section>
+
+          <section class="style-lock-panel">
+            <div class="style-lock-heading"><span>문체 기준 잠금 <i>선택사항</i></span><div><strong>나만의 문체 또는 마음에 드는 문체를 붙여넣으세요.</strong><p>입력하지 않아도 기본 문체 규칙이 적용됩니다. 입력한 문장은 내용이 아닌 문장 길이·어조·구성만 참고합니다.</p></div></div>
+            <textarea id="batchStyleReference" rows="4" maxlength="2000" placeholder="나만의 문체 예시 또는 마음에 드는 세특 한 문단을 붙여넣으세요."></textarea>
+            <div class="style-lock-recopy"><strong>중요</strong><p>문체를 입력하거나 수정한 뒤에는 위의 <b>새 AI 대화방용 프롬프트 복사</b> 버튼을 꼭 다시 눌러 새 프롬프트를 복사하세요.</p></div>
+            <small id="styleLockStatus">입력한 기준 문장은 이 브라우저에 자동 저장됩니다.</small>
           </section>
 
           <section class="batch-offline-panel">
@@ -388,12 +395,6 @@
             </div>
           </section>
 
-          <section class="style-lock-panel">
-            <div class="style-lock-heading"><span>문체 기준 잠금 <i>선택사항</i></span><div><strong>나만의 문체 또는 마음에 드는 문체를 붙여넣으세요.</strong><p>입력하지 않아도 기본 문체 규칙이 적용됩니다. 입력한 문장은 내용이 아닌 문장 길이·어조·구성만 참고합니다.</p></div></div>
-            <textarea id="batchStyleReference" rows="4" maxlength="2000" placeholder="나만의 문체 예시 또는 마음에 드는 세특 한 문단을 붙여넣으세요."></textarea>
-            <div class="style-lock-recopy"><strong>중요</strong><p>문체를 입력하거나 수정한 뒤에는 위의 <b>새 AI 대화방용 프롬프트 복사</b> 버튼을 꼭 다시 눌러 새 프롬프트를 복사하세요.</p></div>
-            <small id="styleLockStatus">입력한 기준 문장은 이 브라우저에 자동 저장됩니다.</small>
-          </section>
         </div>
       </section>
     </section>
