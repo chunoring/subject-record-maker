@@ -37,7 +37,8 @@ const SUBJECT_COMPETENCY_PROFILES = {
     { key: 'digitalInformation', label: '디지털 기반 정보 활용 역량', description: '다양한 디지털 매체와 자료를 활용하여 언어와 문화 정보를 탐색·정리·활용하는 능력', evaluationElements: ['디지털 자료 검색', '정보 선별', '자료 정리와 발표', '온라인 도구 활용', '문화 자료 제작', '출처와 정보 윤리 인식'] }
   ],
   science: [],
-  ethics: []
+  ethics: [],
+  artsPhysical: []
 };
 
 Object.entries(SUBJECT_COMPETENCY_PROFILES).forEach(([key, competencies]) => {
