@@ -207,9 +207,8 @@ function loadAssessments() {
     const loaded = [];
     saved.forEach((item, index) => {
       try {
-        const normalized = normalizeImportedAssessment(item);
-        if (!normalized) throw new Error('invalid-item');
-        loaded.push(normalized);
+        if (!item || typeof item !== 'object') throw new Error('invalid-item');
+        loaded.push({ ...item, subjectArea: item.subjectArea || findSubjectArea(item.subject), evidenceLabel: normalizeEvidenceLabel(item.evidenceLabel), promptFocus: normalizePromptFocus(item.promptFocus), optionalFields: normalizeOptionalFields(item) });
       } catch {
         assessmentLoadIssue = `저장된 수행평가 ${index + 1}번 항목을 읽지 못했습니다.`;
       }
@@ -778,7 +777,11 @@ function editAssessment(id) {
 
 function deleteAssessment(id) {
   const item = assessments.find(assessment => assessment.id === id);
-  if (!item || !confirm(`‘${item.name}’ 수행평가를 삭제할까요?`)) return;
+  if (!item || !confirm(`’${item.name}’ 수행평가를 삭제할까요?`)) return;
+  if (assessmentLoadIssue) {
+    showToast("기존 데이터 보호를 위해 저장을 중단했습니다. 이전 데이터 복구를 이용해 주세요.");
+    return;
+  }
   const nextAssessments = assessments.filter(assessment => assessment.id !== id);
   const nextBatchDrafts = { ...batchDrafts };
   delete nextBatchDrafts[id];
@@ -1384,7 +1387,8 @@ async function copyText(text) {
     temporary.style.opacity = '0';
     document.body.append(temporary);
     temporary.select();
-    return document.execCommand('copy');
+    document.execCommand('copy');
+    return true;
   } catch {
     return false;
   } finally {
