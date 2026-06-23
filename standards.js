@@ -165,7 +165,7 @@
 };
 
 const ACHIEVEMENT_STANDARDS = Object.fromEntries(
-  Object.entries({ ...RAW_STANDARDS, ...SUPPLEMENTAL_RAW_STANDARDS, ...MANUAL_RAW_STANDARDS, ...INFORMATION_RAW_STANDARDS, ...ARTS_PE_RAW_STANDARDS }).map(([subject, text]) => [subject, text.trim().split('\n').map(line => line.trim()).filter(Boolean).map(line => {
+  Object.entries({ ...RAW_STANDARDS, ...SUPPLEMENTAL_RAW_STANDARDS, ...MANUAL_RAW_STANDARDS, ...INFORMATION_RAW_STANDARDS, ...MIDDLE_SCHOOL_RAW_STANDARDS, ...ARTS_PE_RAW_STANDARDS }).map(([subject, text]) => [subject, text.trim().split('\n').map(line => line.trim()).filter(Boolean).map(line => {
     const match = line.match(/^\[([^\]]+)]\s*(.*)$/);
     return { code: match[1], text: match[2] };
   })])
@@ -192,11 +192,22 @@ const SUBJECT_PROFILES = {
 SUBJECT_PROFILES.math.courses.push(...MANUAL_SUBJECT_PROFILES.math.courses);
 SUBJECT_PROFILES.information = INFORMATION_SUBJECT_PROFILES.information;
 SUBJECT_PROFILES.artsPhysical = ARTS_PE_SUBJECT_PROFILE.artsPhysical;
+Object.entries(MIDDLE_SCHOOL_NEW_SUBJECT_PROFILES).forEach(([key, profile]) => { SUBJECT_PROFILES[key] = profile; });
 
 Object.entries(SUPPLEMENTAL_SUBJECT_PROFILES).forEach(([key, profile]) => {
   if (SUBJECT_PROFILES[key]) SUBJECT_PROFILES[key].courses.push(...profile.courses);
   else SUBJECT_PROFILES[key] = profile;
 });
+Object.entries(MIDDLE_SCHOOL_SUBJECT_PROFILES).forEach(([key, courses]) => {
+  if (!SUBJECT_PROFILES[key]) return;
+  const existing = new Set(SUBJECT_PROFILES[key].courses.map(course => course.value));
+  SUBJECT_PROFILES[key].courses.unshift(...courses.filter(course => !existing.has(course.value)));
+});
+
+
+
+
+
 
 
 
