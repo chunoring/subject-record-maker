@@ -19,10 +19,10 @@
   <title>교과 수행평가 세특 메이커</title>
   <link rel="canonical" href="https://chunoring.github.io/subject-record-maker/" />
   <link rel="icon" href="assets/favicon.svg" type="image/svg+xml" />
-  <link rel="stylesheet" href="styles.css?v=20260621-2" />
+  <link rel="stylesheet" href="styles.css?v=20260623-1" />
   <link rel="stylesheet" href="prompt.css?v=20260618-2" />
   <link rel="stylesheet" href="guide.css" />
-  <link rel="stylesheet" href="home.css?v=20260619-1" />
+  <link rel="stylesheet" href="home.css?v=20260623-1" />
   <link rel="stylesheet" href="backup.css?v=20260619-3" />
   <link rel="stylesheet" href="batch.css?v=20260621-12" />
   <link rel="stylesheet" href="batch-tip.css?v=20260622-1" />
@@ -34,7 +34,12 @@
         <p class="eyebrow">ALL SUBJECTS · STUDENT RECORD</p>
         <div class="hero-title-row">
           <h1>교과 수행평가<br /><em>세특 메이커</em></h1>
-          <span class="maker-badge"><small>DEVELOPMENT</small><strong>© 인창고 수학왕 chunoring</strong></span>
+          <div class="hero-title-actions">
+            <span class="maker-badge"><small>DEVELOPMENT</small><strong>© 인창고 수학왕 chunoring</strong></span>
+            <button type="button" class="top-guide-button" id="openGuideTop" aria-haspopup="dialog" aria-controls="helpModal">
+              <span aria-hidden="true">?</span><strong>한눈에 보는 사용방법</strong>
+            </button>
+          </div>
         </div>
         <p class="hero-copy">평가를 먼저 설계하고, 학생별 관찰 기록을 근거 있는 세특 문장으로 정리하세요.</p>
       </div>
@@ -60,83 +65,17 @@
       <div class="flow-line"></div>
       <div class="flow-choice-group" role="group" aria-label="세특 작성 방식 선택">
         <span class="flow-choice-label">2 · 둘 중 하나를 선택하세요</span>
-        <button class="flow-step individual-choice" data-view="generate" type="button">
-          <span>A</span><strong>개별 세특 만들기</strong><small>한 학생씩 자세히 작성</small>
+        <button class="flow-step batch-choice" data-view="batch" type="button">
+          <span>A</span><strong>학급 일괄 작성 <em class="recommended-tag">추천</em></strong><small>여러 학생 자료 한 번에 입력</small>
         </button>
         <span class="flow-choice-or" aria-hidden="true">또는</span>
-        <button class="flow-step batch-choice" data-view="batch" type="button">
-          <span>B</span><strong>학급 일괄 작성</strong><small>여러 학생 자료 한 번에 입력</small>
+        <button class="flow-step individual-choice" data-view="generate" type="button">
+          <span>B</span><strong>개별 세특 만들기</strong><small>한 학생씩 자세히 작성</small>
         </button>
       </div>
     </nav>
 
     <section id="registerView" class="view active">
-      <section class="home-flow" aria-labelledby="homeFlowTitle">
-        <div class="home-flow-heading">
-          <div>
-            <span class="home-flow-kicker">START HERE</span>
-            <h2 id="homeFlowTitle">한눈에 보는 사용방법</h2>
-          </div>
-          <button type="button" class="flow-guide-button" id="openGuideInline">자세히 보기 <span aria-hidden="true">?</span></button>
-        </div>
-
-        <div class="home-flow-main" aria-label="세특 작성 4단계">
-          <article class="flow-step">
-            <span class="flow-step-number">01</span>
-            <span class="flow-step-icon" aria-hidden="true">＋</span>
-            <strong>수행평가 등록</strong>
-            <small>과목 · 활동 · 성취기준</small>
-          </article>
-          <span class="flow-arrow" aria-hidden="true">→</span>
-          <article class="flow-step">
-            <span class="flow-step-number">02</span>
-            <span class="flow-step-icon" aria-hidden="true">✎</span>
-            <strong>학생별 내용 입력</strong>
-            <small>관찰 근거 · 역량 · 수준</small>
-          </article>
-          <span class="flow-arrow" aria-hidden="true">→</span>
-          <article class="flow-step">
-            <span class="flow-step-number">03</span>
-            <span class="flow-step-icon" aria-hidden="true">✦</span>
-            <strong>AI용 자료 복사</strong>
-            <small>가공 전 원본 자료 그대로</small>
-          </article>
-          <span class="flow-arrow" aria-hidden="true">→</span>
-          <article class="flow-step">
-            <span class="flow-step-number">04</span>
-            <span class="flow-step-icon" aria-hidden="true">✓</span>
-            <strong>AI에서 최종 작성</strong>
-            <small>사실 확인 후 최종 사용</small>
-          </article>
-        </div>
-
-        <section class="home-ai-path" aria-label="작성 방식별 권장 AI 흐름">
-          <header class="ai-path-header">
-            <span class="ai-path-label">권장 AI 작성 흐름</span>
-            <p>작성 방식에 맞는 한 가지 트랙을 선택하세요.</p>
-          </header>
-          <div class="home-ai-tracks">
-            <article class="ai-track individual">
-              <header><span>A</span><strong>개별 세특 작성할 경우</strong></header>
-              <div class="ai-path-steps">
-                <b>평가별 프롬프트 복사</b><span>→</span>
-                <b>새 대화방에 1회 입력</b><span>→</span>
-                <b>학생별 원본 자료 반복 입력</b>
-              </div>
-            </article>
-            <article class="ai-track batch">
-              <header><span>B</span><strong>학급 세특 작성할 경우</strong></header>
-              <div class="ai-path-steps">
-                <b>학급 학생 자료 입력</b><span>→</span>
-                <b>5명 묶음 프롬프트 복사</b><span>→</span>
-                <b>묶음마다 새 대화방에 입력</b>
-              </div>
-              <small>선택사항: 필요하면 첫 결과로 문체 기준을 잠근 뒤 다음 묶음을 작성하세요.</small>
-            </article>
-          </div>
-        </section>
-      </section>
-
       <div class="section-title">
         <div><span class="kicker">STEP 01</span><h2>수행평가 등록</h2><p>한 번 등록하면 여러 학생의 세특 작성에 반복해서 사용할 수 있습니다.</p></div>
         <span id="assessmentCount" class="badge">등록 0개</span>

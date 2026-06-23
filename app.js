@@ -2485,8 +2485,9 @@ function closeHelp() {
   helpReturnFocus?.focus();
 }
 
-$('#helpButton').addEventListener('click', openHelp);
-$('#openGuideInline').addEventListener('click', openHelp);
+$('#helpButton')?.addEventListener('click', openHelp);
+$('#openGuideTop')?.addEventListener('click', openHelp);
+$('#openGuideInline')?.addEventListener('click', openHelp);
 $('#closeHelp').addEventListener('click', closeHelp);
 $('#dismissHelp').addEventListener('click', closeHelp);
 $('#helpBackdrop').addEventListener('click', closeHelp);
