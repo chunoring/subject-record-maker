@@ -111,12 +111,6 @@
             <textarea id="assessmentActivity" rows="5" placeholder="학생이 수행할 과제, 탐구 과정, 산출물 등을 구체적으로 입력하세요." required></textarea>
           </label>
 
-          <label class="field">
-            <span>AI 프롬프트 강조사항 <em class="optional prompt-focus-optional">선택사항</em></span>
-            <textarea id="assessmentPromptFocus" rows="3" maxlength="600" placeholder="예: 학생이 선택한 [주제] 항목을 중심으로 작성하고, 수행 결과보다 탐구 과정과 근거 제시 과정을 강조하세요."></textarea>
-            <small><strong>입력하지 않아도 됩니다.</strong> 비워 두면 기본 작성 규칙이 적용됩니다. 입력한 내용은 개별·학급 AI 프롬프트에 공통으로 반영됩니다.</small>
-          </label>
-
           <fieldset class="content-fields-config">
             <legend>학생별 작성 항목</legend>
             <p>학생마다 입력할 내용을 구성하세요. 필수 항목은 이름을 바꿀 수 있지만 삭제할 수 없으며, 선택 항목은 삭제하거나 새로 추가할 수 있습니다.</p>
@@ -128,6 +122,12 @@
             <button type="button" id="addOptionalField" class="add-field-button">＋ 작성 항목 추가</button>
             <div class="field-example-guide"><strong>추가할 수 있는 예시</strong><span>탐구 주제</span><span>선택 동기</span><span>맡은 역할</span><span>문제 해결 과정</span><span>활용한 수학 개념</span><span>자료 분석 방법</span><span>발표·산출물 특징</span><span>피드백 반영</span></div>
           </fieldset>
+
+          <label class="field">
+            <span>AI 프롬프트 강조사항 <em class="optional prompt-focus-optional">선택사항</em></span>
+            <textarea id="assessmentPromptFocus" rows="3" maxlength="600" placeholder="예: 학생이 선택한 [주제] 항목을 중심으로 작성하고, 수행 결과보다 탐구 과정과 근거 제시 과정을 강조하세요."></textarea>
+            <small><strong>입력하지 않아도 됩니다.</strong> 비워 두면 기본 작성 규칙이 적용됩니다. 입력한 내용은 개별·학급 AI 프롬프트에 공통으로 반영됩니다.</small>
+          </label>
 
           <fieldset class="standards-field">
             <legend>관련 성취기준 <b>*</b></legend>
