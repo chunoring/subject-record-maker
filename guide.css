@@ -29,7 +29,11 @@
 .guide-close { display:grid; place-items:center; width:38px; height:38px; border:0; border-radius:50%; color:#66736c; background:#eef2ef; font-size:24px; cursor:pointer; }
 .guide-body { display:grid; gap:18px; padding:22px 28px; }
 .guide-section { padding:19px; border:1px solid #dce4de; border-radius:16px; background:#fff; }
-.guide-section.premium-guide { border-color:rgba(184,155,84,.48); background:linear-gradient(135deg,#fffdf7,#f2f8f4); }
+.guide-section.recommended-guide { border-color:rgba(184,155,84,.48); background:linear-gradient(135deg,#fffdf7,#f2f8f4); box-shadow:0 10px 24px rgba(42,91,69,.08); }
+.guide-section.recommended-guide .guide-section-title>span { color:#fff; background:#155c43; }
+.guide-section.recommended-guide .guide-section-title strong:after { content:'추천'; display:inline-flex; margin-left:7px; padding:2px 6px; border-radius:999px; color:#fff; background:#d4872f; font-family:"Pretendard","Noto Sans KR",system-ui,sans-serif; font-size:9px; font-weight:900; vertical-align:2px; }
+.guide-section.fallback-guide { background:#fafbf9; }
+.guide-section.fallback-guide .guide-section-title>span { color:#748079; background:#edf1ee; }
 .guide-section-title { display:flex; align-items:center; gap:11px; margin-bottom:16px; }
 .guide-section-title>span { display:grid; place-items:center; width:34px; height:34px; border-radius:11px; color:#155c43; background:#e9f3ed; font-size:10px; font-weight:900; }
 .guide-section-title strong { display:block; font-size:15px; }
