@@ -1352,17 +1352,36 @@ function updateCount() {
 $('#result').addEventListener('input', updateCount);
 
 async function copyText(text) {
-  try { await navigator.clipboard.writeText(text); }
-  catch {
-    const temporary = document.createElement('textarea');
-    temporary.value = text;
+  const value = String(text || '');
+  if (!value.trim()) {
+    showToast('복사할 내용이 없습니다.');
+    return false;
+  }
+  try {
+    if (navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(value);
+      return true;
+    }
+  } catch {}
+
+  let temporary;
+  try {
+    temporary = document.createElement('textarea');
+    temporary.value = value;
     temporary.style.position = 'fixed';
     temporary.style.opacity = '0';
+    temporary.style.left = '-9999px';
     document.body.append(temporary);
+    temporary.focus();
     temporary.select();
-    document.execCommand('copy');
-    temporary.remove();
+    temporary.setSelectionRange(0, temporary.value.length);
+    if (document.execCommand('copy')) return true;
+  } catch {
+  } finally {
+    temporary?.remove();
   }
+  showToast('브라우저가 자동 복사를 막았습니다. 내용을 선택해 Ctrl+C로 복사해 주세요.');
+  return false;
 }
 
 function buildStudentDataPrompt() {
@@ -1497,8 +1516,7 @@ function buildPromptFocusSection(item) {
 $('#copyAssessmentPrompt').addEventListener('click', async () => {
   const prompt = buildAssessmentPrompt();
   if (!prompt) return showToast('수행평가를 먼저 선택해 주세요.');
-  await copyText(prompt);
-  showToast('수행평가별 프롬프트를 복사했습니다. 새 AI 대화방에 붙여넣으세요.');
+  if (await copyText(prompt)) showToast('수행평가별 프롬프트를 복사했습니다. 새 AI 대화방에 붙여넣으세요.');
 });
 
 $('#copyStudentData').addEventListener('click', async () => {
@@ -1508,13 +1526,11 @@ $('#copyStudentData').addEventListener('click', async () => {
     return showToast(`‘${item?.evidenceLabel || DEFAULT_EVIDENCE_LABEL}’ 항목을 입력해 주세요.`);
   }
   const prompt = buildStudentDataPrompt();
-  await copyText(prompt);
-  showToast('AI용 학생 원본 자료를 복사했습니다. 같은 AI 대화방에 붙여넣으세요.');
+  if (await copyText(prompt)) showToast('AI용 학생 원본 자료를 복사했습니다. 같은 AI 대화방에 붙여넣으세요.');
 });
 
 $('#copyResult').addEventListener('click', async () => {
-  await copyText($('#result').value);
-  showToast('오프라인 보조 초안을 복사했습니다.');
+  if (await copyText($('#result').value)) showToast('오프라인 보조 초안을 복사했습니다.');
 });
 
 function loadBatchDrafts() {
@@ -2283,8 +2299,9 @@ function renderBatchChunks(item, draft) {
     button.className = 'prompt-button';
     button.innerHTML = '<span>✦</span> 새 AI 대화방용 프롬프트 복사';
     button.addEventListener('click', async () => {
-      await copyText(buildBatchPrompt(item, entries, draft));
-      showToast(`${title.textContent} 묶음 프롬프트를 복사했습니다. 새 AI 대화방에 붙여넣으세요.`);
+      if (await copyText(buildBatchPrompt(item, entries, draft))) {
+        showToast(`${title.textContent} 묶음 프롬프트를 복사했습니다. 새 AI 대화방에 붙여넣으세요.`);
+      }
     });
     card.append(header, button);
     container.append(card);
@@ -2388,8 +2405,7 @@ $('#batchOfflineResult').addEventListener('input', updateBatchOfflineCount);
 $('#copyBatchOffline').addEventListener('click', async () => {
   const text = $('#batchOfflineResult').value.trim();
   if (!text) return showToast('먼저 오프라인 보조 초안을 만들어 주세요.');
-  await copyText(text);
-  showToast('학급 오프라인 보조 초안 전체를 복사했습니다.');
+  if (await copyText(text)) showToast('학급 오프라인 보조 초안 전체를 복사했습니다.');
 });
 
 
