@@ -802,11 +802,11 @@ function renderAssessmentList() {
     const activity = document.createElement('p'); activity.textContent = item.activity;
     const meta = document.createElement('span'); meta.className = 'assessment-meta'; meta.textContent = `성취기준 ${item.standards.length}개 · 작성 항목 ${1 + item.optionalFields.length}개`;
     const actions = document.createElement('div'); actions.className = 'assessment-actions';
-    const useIndividual = document.createElement('button'); useIndividual.type = 'button'; useIndividual.className = 'use-button individual'; useIndividual.textContent = '이 평가로 개별 세특 만들기 →';
+    const useIndividual = document.createElement('button'); useIndividual.type = 'button'; useIndividual.className = 'use-button individual'; useIndividual.textContent = '개별 작성으로 이동 →';
     useIndividual.addEventListener('click', () => { switchView('generate'); renderAssessmentSelect(item.id); });
-    const useBatch = document.createElement('button'); useBatch.type = 'button'; useBatch.className = 'use-button batch'; useBatch.textContent = '이 평가로 학급 세특 만들기 →';
+    const useBatch = document.createElement('button'); useBatch.type = 'button'; useBatch.className = 'use-button batch'; useBatch.textContent = '추천 · 여러 학생 일괄 입력 →';
     useBatch.addEventListener('click', () => { switchView('batch'); renderBatchAssessmentSelect(item.id); });
-    actions.append(useIndividual, useBatch);
+    actions.append(useBatch, useIndividual);
     card.append(top, activity, meta, actions);
     container.append(card);
   });

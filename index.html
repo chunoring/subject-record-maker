@@ -66,7 +66,7 @@
       <div class="flow-choice-group" role="group" aria-label="세특 작성 방식 선택">
         <span class="flow-choice-label">2 · 둘 중 하나를 선택하세요</span>
         <button class="flow-step batch-choice" data-view="batch" type="button">
-          <span>A</span><strong>학급 일괄 작성 <em class="recommended-tag">추천</em></strong><small>여러 학생 자료 한 번에 입력</small>
+          <span>A</span><strong>여러 학생 일괄 입력 <em class="recommended-tag">추천</em></strong><small>학생별 자료를 한 번에 입력</small>
         </button>
         <span class="flow-choice-or" aria-hidden="true">또는</span>
         <button class="flow-step individual-choice" data-view="generate" type="button">
@@ -211,12 +211,12 @@
             <div class="ai-sequence-steps">
               <article class="ai-sequence-step">
                 <div><b>1</b><span><strong>평가마다 한 번</strong><small>새 AI 대화방에 먼저 붙여넣기</small></span></div>
-                <button type="button" id="copyAssessmentPrompt" class="prompt-button" disabled title="선택한 수행평가의 활동과 성취기준을 포함한 AI 지침을 복사합니다"><span>✦</span> 수행평가별 프롬프트 복사</button>
+                <button type="button" id="copyAssessmentPrompt" class="prompt-button" disabled title="선택한 수행평가의 활동과 성취기준을 포함한 AI 지침을 복사합니다"><span>✦</span> 1. 수행평가별 프롬프트 복사</button>
               </article>
               <span class="sequence-arrow" aria-hidden="true">→</span>
               <article class="ai-sequence-step">
                 <div><b>2</b><span><strong>학생마다 반복</strong><small>입력한 원본 자료 그대로 붙여넣기</small></span></div>
-                <button type="button" id="copyStudentData" class="prompt-button" disabled><span>✦</span> AI용 학생 자료 복사</button>
+                <button type="button" id="copyStudentData" class="prompt-button" disabled><span>✦</span> 2. AI용 학생 자료 복사 (반복)</button>
               </article>
             </div>
           </section>
@@ -241,7 +241,7 @@
 
     <section id="batchView" class="view">
       <div class="section-title">
-        <div><span class="kicker">STEP 02</span><h2>학급 일괄 작성</h2><p>여러 학생의 원본 자료를 한 번에 입력하고 안정적인 묶음 프롬프트로 복사하세요.</p></div>
+        <div><span class="kicker">STEP 02</span><h2>여러 학생 일괄 입력</h2><p>학생별 원본 자료를 한 번에 입력하고 안정적인 묶음 프롬프트로 복사하세요.</p></div>
         <div class="batch-title-actions"><button type="button" id="openBatchTip" class="batch-tip-open-button">💡 선택 TIP · 산출물 PDF 한 번에 정리하기</button><button type="button" id="backToIndividual" class="outline-button">개별 세특 작성</button></div>
       </div>
 
@@ -425,7 +425,7 @@
   <script src="standards.js?v=20260623-1"></script>
   <script src="competencies.js?v=20260622-1"></script>
   <script src="writing-profiles.js?v=20260622-1"></script>
-  <script src="app.js?v=20260624-1"></script>
+  <script src="app.js?v=20260625-1"></script>
 </body>
 </html>
 
