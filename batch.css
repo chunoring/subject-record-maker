@@ -72,6 +72,9 @@
 .batch-example-guide-table th:nth-child(2),.batch-example-guide-table td:nth-child(2) { min-width: 250px; white-space: normal; }
 .batch-example-guide-table th:last-child,.batch-example-guide-table td:last-child { border-right: 0; }
 .batch-table-container { width: 100%; max-width: 100%; min-width: 0; overflow-x: auto; overscroll-behavior-inline: contain; scrollbar-gutter: stable; border: 1px solid var(--line); border-radius: 13px; -webkit-overflow-scrolling: touch; }
+.batch-table-footer-actions { display: flex; align-items: center; justify-content: flex-end; gap: 10px; margin-top: 10px; }
+.batch-table-footer-actions small { color: var(--muted); font-size: 9px; }
+.batch-table-footer-actions button { flex: 0 0 auto; }
 .batch-table { width: 100%; min-width: 980px; border-spacing: 0; border-collapse: separate; background: #fff; }
 .batch-table th { padding: 10px 8px; border-bottom: 1px solid var(--line); color: #53645b; background: #f2f6f3; font-size: 10px; text-align: left; white-space: nowrap; }
 .batch-heading-open { display: inline-flex; align-items: center; gap: 5px; max-width: 100%; padding: 5px 7px; border: 1px dashed transparent; border-radius: 7px; color: inherit; background: transparent; font: inherit; font-weight: 750; cursor: pointer; }
@@ -112,6 +115,15 @@
 .style-lock-recopy strong { flex: 0 0 auto; padding: 2px 6px; border-radius: 999px; color: #fff; background: #a97837; font-size: 8px; }
 .style-lock-recopy p { margin: 0; font-size: 9px; line-height: 1.5; }
 
+.batch-prompt-focus-editor { display:grid; gap:9px; margin-bottom:16px; padding:14px; border:1px solid #c9dce7; border-radius:13px; background:#f3f8fb; }
+.batch-prompt-focus-heading { display:flex; align-items:flex-start; gap:10px; }
+.batch-prompt-focus-heading > span { flex:0 0 auto; padding:5px 9px; border-radius:999px; color:#315f78; background:#dcebf3; font-size:9px; font-weight:850; }
+.batch-prompt-focus-heading > span i { display:block; margin-top:2px; color:#607986; font-size:7px; font-style:normal; text-align:center; }
+.batch-prompt-focus-heading strong { display:block; font-size:13px; }
+.batch-prompt-focus-heading p { margin:3px 0 0; color:var(--muted); font-size:9px; line-height:1.5; }
+.batch-prompt-focus-editor textarea { min-height:78px; background:#fff; font-size:11px; }
+.batch-prompt-focus-editor > small { color:#627b88; font-size:9px; }
+
 .batch-chunks-section { margin-top: 24px; padding: 18px; border: 2px solid rgba(36,111,79,.42); border-radius: 16px; background: linear-gradient(120deg,#fffefa,#edf6f0); }
 .batch-chunks-heading { justify-content: flex-start; margin-bottom: 13px; }
 .batch-chunk-list { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 10px; }
@@ -149,6 +161,8 @@
   .batch-paste-panel { grid-template-columns: 1fr; }
   .batch-paste-panel textarea { grid-column: 1; }
   .batch-paste-panel > button,.batch-file-actions button { width: 100%; }
+  .batch-table-footer-actions { align-items: stretch; flex-direction: column; }
+  .batch-table-footer-actions button { width: 100%; }
   .batch-file-actions { display: grid; }
   .batch-bulk-actions { display: grid; grid-template-columns: 1fr; }
   .batch-bulk-actions button { width: 100%; }

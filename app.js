@@ -1,6 +1,8 @@
 const STORAGE_KEY = 'subject-record-maker-assessments-v1';
 const BATCH_STORAGE_KEY = 'subject-record-maker-batch-drafts-v1';
 const RECOVERY_STORAGE_KEY = 'subject-record-maker-recovery-v1';
+const BATCH_TIP_STORAGE_KEY = 'subject-record-maker-batch-tip-dismissed-v1';
+const DEFAULT_BATCH_ROW_COUNT = 10;
 const DEFAULT_SUBJECT_AREA = Object.keys(SUBJECT_PROFILES)[0] || '';
 
 function findSubjectArea(subject) {
@@ -467,7 +469,7 @@ function normalizeImportedBatchDraft(draft, item) {
   return {
     length: ['short', 'medium', 'long'].includes(draft.length) ? draft.length : 'medium',
     styleReference: typeof draft.styleReference === 'string' ? draft.styleReference.slice(0, 2000) : '',
-    rows: rows.length ? rows : Array.from({ length: 5 }, (_, index) => createBatchRow(index))
+    rows: rows.length ? rows : createDefaultBatchRows()
   };
 }
 
@@ -486,32 +488,6 @@ function batchDraftHasContent(draft) {
   });
 }
 
-function restoreStorageValue(key, value) {
-  if (value === null) localStorage.removeItem(key);
-  else localStorage.setItem(key, value);
-}
-
-function saveDataAtomically(nextAssessments, nextBatchDrafts, snapshotReason = '데이터 변경 전 자동 보관') {
-  const previousAssessmentsRaw = localStorage.getItem(STORAGE_KEY);
-  const previousBatchDraftsRaw = localStorage.getItem(BATCH_STORAGE_KEY);
-  createRecoverySnapshot(snapshotReason, true);
-
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(nextAssessments));
-    localStorage.setItem(BATCH_STORAGE_KEY, JSON.stringify(nextBatchDrafts));
-    assessmentLoadIssue = '';
-    updateDataSafetyStatus();
-    return true;
-  } catch {
-    try {
-      restoreStorageValue(STORAGE_KEY, previousAssessmentsRaw);
-      restoreStorageValue(BATCH_STORAGE_KEY, previousBatchDraftsRaw);
-    } catch { /* 기존 데이터 복원도 실패한 경우 복구본을 유지 */ }
-    updateDataSafetyStatus();
-    return false;
-  }
-}
-
 async function importFullBackup(file) {
   if (!file) return;
   if (file.size > 10 * 1024 * 1024) return showToast('백업 파일은 10MB 이하만 불러올 수 있습니다.');
@@ -528,25 +504,20 @@ async function importFullBackup(file) {
     }
     const merged = new Map(assessments.map(item => [item.id, item]));
     imported.forEach(item => merged.set(item.id, item));
-    const nextAssessments = [...merged.values()].sort((a, b) => String(b.updatedAt).localeCompare(String(a.updatedAt)));
+    assessments = [...merged.values()].sort((a, b) => String(b.updatedAt).localeCompare(String(a.updatedAt)));
 
     const importedDraftSource = parsed?.batchDrafts && typeof parsed.batchDrafts === 'object' && !Array.isArray(parsed.batchDrafts)
       ? parsed.batchDrafts
       : {};
-    const nextBatchDrafts = { ...batchDrafts };
     let importedClassCount = 0;
     imported.forEach(item => {
       const normalizedDraft = normalizeImportedBatchDraft(importedDraftSource[item.id], item);
       if (!normalizedDraft) return;
-      nextBatchDrafts[item.id] = normalizedDraft;
+      batchDrafts[item.id] = normalizedDraft;
       if (batchDraftHasContent(normalizedDraft)) importedClassCount += 1;
     });
-    if (!saveDataAtomically(nextAssessments, nextBatchDrafts, '전체 백업 불러오기 전 자동 보관')) {
-      showToast('저장 공간이 부족해 백업을 불러오지 못했습니다. 기존 데이터는 유지됩니다.');
-      return;
-    }
-    assessments = nextAssessments;
-    batchDrafts = nextBatchDrafts;
+    saveAssessments({ force: true });
+    saveBatchDrafts({ skipSnapshot: true });
     resetAssessmentForm();
     renderAssessmentList();
     renderAssessmentSelect(imported[0].id);
@@ -589,7 +560,10 @@ function switchView(name) {
   $$('.view').forEach(view => view.classList.toggle('active', view.id === `${name}View`));
   $$('.flow-nav .flow-step').forEach(step => step.classList.toggle('active', step.dataset.view === name));
   if (name === 'generate') renderAssessmentSelect();
-  if (name === 'batch') renderBatchAssessmentSelect();
+  if (name === 'batch') {
+    renderBatchAssessmentSelect();
+    maybeOpenBatchTip();
+  }
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
@@ -699,6 +673,17 @@ function collectOptionalFields() {
 
 $('#addOptionalField').addEventListener('click', () => appendOptionalFieldRow());
 
+$('#editEvidenceLabel').addEventListener('click', () => {
+  const input = $('#assessmentEvidenceLabel');
+  input.focus();
+  input.select();
+  input.closest('.required-field-row').classList.add('is-editing');
+});
+$('#assessmentEvidenceLabel').addEventListener('blur', event => {
+  event.target.closest('.required-field-row').classList.remove('is-editing');
+});
+
+
 $('#assessmentForm').addEventListener('submit', event => {
   event.preventDefault();
   const standards = $$('#standardsList input:checked').map(input => input.value);
@@ -777,24 +762,16 @@ function editAssessment(id) {
 
 function deleteAssessment(id) {
   const item = assessments.find(assessment => assessment.id === id);
-  if (!item || !confirm(`’${item.name}’ 수행평가를 삭제할까요?`)) return;
-  if (assessmentLoadIssue) {
-    showToast("기존 데이터 보호를 위해 저장을 중단했습니다. 이전 데이터 복구를 이용해 주세요.");
+  if (!item || !confirm(`‘${item.name}’ 수행평가를 삭제할까요?`)) return;
+  const previousAssessments = assessments;
+  assessments = assessments.filter(assessment => assessment.id !== id);
+  if (!saveAssessments({ allowDecrease: true })) {
+    assessments = previousAssessments;
     return;
   }
-  const nextAssessments = assessments.filter(assessment => assessment.id !== id);
-  const nextBatchDrafts = { ...batchDrafts };
-  delete nextBatchDrafts[id];
-  if (!saveDataAtomically(nextAssessments, nextBatchDrafts, '수행평가 삭제 전 자동 보관')) {
-    showToast('저장 공간이 부족해 수행평가를 삭제하지 못했습니다.');
-    return;
-  }
-  assessments = nextAssessments;
-  batchDrafts = nextBatchDrafts;
   renderAssessmentList();
   renderAssessmentSelect();
-  renderBatchAssessmentSelect();
-  showToast('수행평가와 연결된 학급 자료를 삭제했습니다.');
+  showToast('수행평가를 삭제했습니다.');
 }
 
 function renderAssessmentList() {
@@ -825,11 +802,11 @@ function renderAssessmentList() {
     const activity = document.createElement('p'); activity.textContent = item.activity;
     const meta = document.createElement('span'); meta.className = 'assessment-meta'; meta.textContent = `성취기준 ${item.standards.length}개 · 작성 항목 ${1 + item.optionalFields.length}개`;
     const actions = document.createElement('div'); actions.className = 'assessment-actions';
-    const useIndividual = document.createElement('button'); useIndividual.type = 'button'; useIndividual.className = 'use-button individual'; useIndividual.textContent = '이 평가로 개별 세특 만들기 →';
+    const useIndividual = document.createElement('button'); useIndividual.type = 'button'; useIndividual.className = 'use-button individual'; useIndividual.textContent = '개별 작성으로 이동 →';
     useIndividual.addEventListener('click', () => { switchView('generate'); renderAssessmentSelect(item.id); });
-    const useBatch = document.createElement('button'); useBatch.type = 'button'; useBatch.className = 'use-button batch'; useBatch.textContent = '이 평가로 학급 세특 만들기 →';
+    const useBatch = document.createElement('button'); useBatch.type = 'button'; useBatch.className = 'use-button batch'; useBatch.textContent = '추천 · 여러 학생 일괄 입력 →';
     useBatch.addEventListener('click', () => { switchView('batch'); renderBatchAssessmentSelect(item.id); });
-    actions.append(useIndividual, useBatch);
+    actions.append(useBatch, useIndividual);
     card.append(top, activity, meta, actions);
     container.append(card);
   });
@@ -1375,25 +1352,36 @@ function updateCount() {
 $('#result').addEventListener('input', updateCount);
 
 async function copyText(text) {
+  const value = String(text || '');
+  if (!value.trim()) {
+    showToast('복사할 내용이 없습니다.');
+    return false;
+  }
   try {
-    await navigator.clipboard.writeText(text);
-    return true;
-  } catch { /* 보안 컨텍스트가 아니면 호환 복사 방식 사용 */ }
+    if (navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(value);
+      return true;
+    }
+  } catch {}
 
-  const temporary = document.createElement('textarea');
+  let temporary;
   try {
-    temporary.value = text;
+    temporary = document.createElement('textarea');
+    temporary.value = value;
     temporary.style.position = 'fixed';
     temporary.style.opacity = '0';
+    temporary.style.left = '-9999px';
     document.body.append(temporary);
+    temporary.focus();
     temporary.select();
-    document.execCommand('copy');
-    return true;
+    temporary.setSelectionRange(0, temporary.value.length);
+    if (document.execCommand('copy')) return true;
   } catch {
-    return false;
   } finally {
-    temporary.remove();
+    temporary?.remove();
   }
+  showToast('브라우저가 자동 복사를 막았습니다. 내용을 선택해 Ctrl+C로 복사해 주세요.');
+  return false;
 }
 
 function buildStudentDataPrompt() {
@@ -1528,8 +1516,7 @@ function buildPromptFocusSection(item) {
 $('#copyAssessmentPrompt').addEventListener('click', async () => {
   const prompt = buildAssessmentPrompt();
   if (!prompt) return showToast('수행평가를 먼저 선택해 주세요.');
-  if (!await copyText(prompt)) return showToast('클립보드에 복사하지 못했습니다. 브라우저 권한을 확인해 주세요.');
-  showToast('수행평가별 프롬프트를 복사했습니다. 새 AI 대화방에 붙여넣으세요.');
+  if (await copyText(prompt)) showToast('수행평가별 프롬프트를 복사했습니다. 새 AI 대화방에 붙여넣으세요.');
 });
 
 $('#copyStudentData').addEventListener('click', async () => {
@@ -1539,13 +1526,11 @@ $('#copyStudentData').addEventListener('click', async () => {
     return showToast(`‘${item?.evidenceLabel || DEFAULT_EVIDENCE_LABEL}’ 항목을 입력해 주세요.`);
   }
   const prompt = buildStudentDataPrompt();
-  if (!await copyText(prompt)) return showToast('클립보드에 복사하지 못했습니다. 브라우저 권한을 확인해 주세요.');
-  showToast('AI용 학생 원본 자료를 복사했습니다. 같은 AI 대화방에 붙여넣으세요.');
+  if (await copyText(prompt)) showToast('AI용 학생 원본 자료를 복사했습니다. 같은 AI 대화방에 붙여넣으세요.');
 });
 
 $('#copyResult').addEventListener('click', async () => {
-  if (!await copyText($('#result').value)) return showToast('클립보드에 복사하지 못했습니다. 브라우저 권한을 확인해 주세요.');
-  showToast('오프라인 보조 초안을 복사했습니다.');
+  if (await copyText($('#result').value)) showToast('오프라인 보조 초안을 복사했습니다.');
 });
 
 function loadBatchDrafts() {
@@ -1557,11 +1542,7 @@ function loadBatchDrafts() {
   }
 }
 
-let batchDraftSaveTimer;
-
 function saveBatchDrafts({ skipSnapshot = false } = {}) {
-  window.clearTimeout(batchDraftSaveTimer);
-  batchDraftSaveTimer = undefined;
   try {
     if (!skipSnapshot) createRecoverySnapshot('학급 자료 저장 전 자동 보관');
     localStorage.setItem(BATCH_STORAGE_KEY, JSON.stringify(batchDrafts));
@@ -1573,21 +1554,6 @@ function saveBatchDrafts({ skipSnapshot = false } = {}) {
   }
 }
 
-function scheduleBatchDraftSave() {
-  window.clearTimeout(batchDraftSaveTimer);
-  batchDraftSaveTimer = window.setTimeout(() => {
-    batchDraftSaveTimer = undefined;
-    saveBatchDrafts();
-  }, 300);
-}
-
-function flushBatchDraftSave() {
-  if (batchDraftSaveTimer === undefined) return;
-  saveBatchDrafts();
-}
-
-window.addEventListener('pagehide', flushBatchDraftSave);
-
 function createBatchRow(index = 0) {
   return {
     id: makeId(),
@@ -1597,6 +1563,10 @@ function createBatchRow(index = 0) {
     achievement: '',
     competencies: ''
   };
+}
+
+function createDefaultBatchRows() {
+  return Array.from({ length: DEFAULT_BATCH_ROW_COUNT }, (_, index) => createBatchRow(index));
 }
 
 function normalizeBatchRow(row, index, item) {
@@ -1618,15 +1588,23 @@ function getBatchDraft(item) {
     batchDrafts[item.id] = {
       length: 'medium',
       styleReference: '',
-      rows: Array.from({ length: 5 }, (_, index) => createBatchRow(index))
+      rows: createDefaultBatchRows()
     };
     saveBatchDrafts();
   } else {
     saved.length = ['short', 'medium', 'long'].includes(saved.length) ? saved.length : 'medium';
     saved.styleReference = typeof saved.styleReference === 'string' ? saved.styleReference : '';
-    saved.rows = Array.isArray(saved.rows) && saved.rows.length
+    const normalizedRows = Array.isArray(saved.rows) && saved.rows.length
       ? saved.rows.map((row, index) => normalizeBatchRow(row, index, item))
-      : Array.from({ length: 5 }, (_, index) => createBatchRow(index));
+      : createDefaultBatchRows();
+    if (normalizedRows.length === 5) {
+      const startIndex = normalizedRows.length;
+      normalizedRows.push(...Array.from(
+        { length: DEFAULT_BATCH_ROW_COUNT - startIndex },
+        (_, index) => createBatchRow(startIndex + index)
+      ));
+    }
+    saved.rows = normalizedRows;
   }
   return batchDrafts[item.id];
 }
@@ -1650,6 +1628,11 @@ function renderBatchAssessment() {
   $('#batchPasteInput').value = '';
   $('#batchStyleReference').value = '';
   $('#batchLength').value = 'medium';
+  $('#batchPromptFocus').value = item?.promptFocus || '';
+  $('#batchPromptFocus').disabled = !item;
+  $('#batchPromptFocusStatus').textContent = item
+    ? '선택한 수행평가의 강조사항과 연결되어 있습니다.'
+    : '수행평가를 선택하면 강조사항을 수정할 수 있습니다.';
   editor.dataset.assessmentId = item?.id || '';
   box.classList.toggle('hidden', !item);
   editor.classList.toggle('hidden', !item);
@@ -2025,7 +2008,7 @@ function renderBatchTable(item, draft) {
     labelCell.className = 'batch-label-cell';
     const labelInput = createBatchTextControl(row.localLabel, '번호 또는 구분', value => {
       row.localLabel = value;
-      scheduleBatchDraftSave();
+      saveBatchDrafts();
     }, false);
     labelCell.append(labelInput);
     tr.append(labelCell);
@@ -2034,7 +2017,7 @@ function renderBatchTable(item, draft) {
     evidenceCell.className = 'evidence-cell';
     evidenceCell.append(createBatchTextControl(row.evidence, `${item.evidenceLabel} 내용을 입력하세요.`, value => {
       row.evidence = value;
-      scheduleBatchDraftSave();
+      saveBatchDrafts();
       renderBatchChunks(item, draft);
     }));
     tr.append(evidenceCell);
@@ -2043,7 +2026,7 @@ function renderBatchTable(item, draft) {
       const td = document.createElement('td');
       td.append(createBatchTextControl(row.optional[field.id] || '', field.label, value => {
         row.optional[field.id] = value;
-        scheduleBatchDraftSave();
+        saveBatchDrafts();
         renderBatchChunks(item, draft);
       }));
       tr.append(td);
@@ -2316,11 +2299,9 @@ function renderBatchChunks(item, draft) {
     button.className = 'prompt-button';
     button.innerHTML = '<span>✦</span> 새 AI 대화방용 프롬프트 복사';
     button.addEventListener('click', async () => {
-      if (!await copyText(buildBatchPrompt(item, entries, draft))) {
-        showToast('클립보드에 복사하지 못했습니다. 브라우저 권한을 확인해 주세요.');
-        return;
+      if (await copyText(buildBatchPrompt(item, entries, draft))) {
+        showToast(`${title.textContent} 묶음 프롬프트를 복사했습니다. 새 AI 대화방에 붙여넣으세요.`);
       }
-      showToast(`${title.textContent} 묶음 프롬프트를 복사했습니다. 새 AI 대화방에 붙여넣으세요.`);
     });
     card.append(header, button);
     container.append(card);
@@ -2342,12 +2323,32 @@ $('#batchLength').addEventListener('change', event => {
   saveBatchDrafts();
   renderBatchChunks(item, draft);
 });
+
+let batchPromptFocusSaveTimer = null;
+$('#batchPromptFocus').addEventListener('input', event => {
+  const item = assessments.find(assessment => assessment.id === $('#batchAssessmentSelect').value);
+  if (!item) return;
+  item.promptFocus = normalizePromptFocus(event.target.value);
+  if ($('#editingId').value === item.id) $('#assessmentPromptFocus').value = event.target.value;
+  const draft = getBatchDraft(item);
+  renderBatchChunks(item, draft);
+  $('#batchPromptFocusStatus').textContent = '묶음 프롬프트에 즉시 반영됨 · 수행평가에 저장하는 중입니다.';
+  window.clearTimeout(batchPromptFocusSaveTimer);
+  batchPromptFocusSaveTimer = window.setTimeout(() => {
+    if (!saveAssessments()) return;
+    renderAssessmentList();
+    if ($('#batchAssessmentSelect').value === item.id) {
+      $('#batchPromptFocusStatus').textContent = '수행평가 등록 내용에 저장되었습니다. 묶음 프롬프트를 다시 복사하세요.';
+    }
+  }, 450);
+});
+
 $('#batchStyleReference').addEventListener('input', event => {
   const item = assessments.find(assessment => assessment.id === $('#batchAssessmentSelect').value);
   if (!item) return;
   const draft = getBatchDraft(item);
   draft.styleReference = event.target.value;
-  scheduleBatchDraftSave();
+  saveBatchDrafts();
   updateStyleLockStatus(draft);
   renderBatchChunks(item, draft);
 });
@@ -2361,6 +2362,19 @@ $('#addBatchStudent').addEventListener('click', () => {
   renderBatchTable(item, draft);
   renderBatchChunks(item, draft);
 });
+$('#addFiveBatchRows').addEventListener('click', () => {
+  const item = assessments.find(assessment => assessment.id === $('#batchAssessmentSelect').value);
+  if (!item) return showToast('수행평가를 먼저 선택해 주세요.');
+  const draft = getBatchDraft(item);
+  const addCount = Math.min(5, 40 - draft.rows.length);
+  if (addCount <= 0) return showToast('한 학급은 최대 40명까지 입력할 수 있습니다.');
+  const startIndex = draft.rows.length;
+  draft.rows.push(...Array.from({ length: addCount }, (_, index) => createBatchRow(startIndex + index)));
+  saveBatchDrafts();
+  renderBatchTable(item, draft);
+  renderBatchChunks(item, draft);
+  showToast(`표 아래에 빈 행 ${addCount}개를 추가했습니다.`);
+});
 $('#clearBatchStudents').addEventListener('click', () => {
   const item = assessments.find(assessment => assessment.id === $('#batchAssessmentSelect').value);
   if (!item) return showToast('수행평가를 먼저 선택해 주세요.');
@@ -2368,7 +2382,7 @@ $('#clearBatchStudents').addEventListener('click', () => {
   const confirmed = confirm(`‘${item.name}’ 수행평가의 학생 입력 내용을 모두 삭제할까요?\n\n다른 수행평가의 학급 자료와 현재 분량·문체 기준은 유지됩니다.`);
   if (!confirmed) return;
   const previousRows = draft.rows;
-  draft.rows = Array.from({ length: 5 }, (_, index) => createBatchRow(index));
+  draft.rows = createDefaultBatchRows();
   if (!saveBatchDrafts()) {
     draft.rows = previousRows;
     return;
@@ -2391,17 +2405,88 @@ $('#batchOfflineResult').addEventListener('input', updateBatchOfflineCount);
 $('#copyBatchOffline').addEventListener('click', async () => {
   const text = $('#batchOfflineResult').value.trim();
   if (!text) return showToast('먼저 오프라인 보조 초안을 만들어 주세요.');
-  if (!await copyText(text)) return showToast('클립보드에 복사하지 못했습니다. 브라우저 권한을 확인해 주세요.');
-  showToast('학급 오프라인 보조 초안 전체를 복사했습니다.');
+  if (await copyText(text)) showToast('학급 오프라인 보조 초안 전체를 복사했습니다.');
+});
+
+
+const batchTipModal = $('#batchTipModal');
+const batchTipSlides = $$('.batch-tip-slide');
+const batchTipDots = [];
+let batchTipStep = 0;
+let batchTipReturnFocus = null;
+let batchTipAutoShown = false;
+
+function getBatchTipDismissed() {
+  try { return localStorage.getItem(BATCH_TIP_STORAGE_KEY) === '1'; }
+  catch { return false; }
+}
+
+function saveBatchTipPreference() {
+  try {
+    if ($('#batchTipDontShow').checked) localStorage.setItem(BATCH_TIP_STORAGE_KEY, '1');
+    else localStorage.removeItem(BATCH_TIP_STORAGE_KEY);
+  } catch {}
+}
+
+function setBatchTipStep(nextStep) {
+  batchTipStep = Math.max(0, Math.min(batchTipSlides.length - 1, nextStep));
+  $('#batchTipTrack').style.transform = `translateX(-${batchTipStep * 100}%)`;
+  $('#batchTipStepLabel').textContent = `${batchTipStep + 1} / ${batchTipSlides.length}`;
+  batchTipSlides.forEach((slide, index) => slide.setAttribute('aria-hidden', String(index !== batchTipStep)));
+  batchTipDots.forEach((dot, index) => {
+    dot.classList.toggle('active', index === batchTipStep);
+    dot.setAttribute('aria-current', index === batchTipStep ? 'step' : 'false');
+  });
+  $('#batchTipPrev').disabled = batchTipStep === 0;
+  $('#batchTipNext').textContent = batchTipStep === batchTipSlides.length - 1 ? '학급 입력 시작' : '다음';
+}
+
+function openBatchTip() {
+  batchTipReturnFocus = document.activeElement;
+  $('#batchTipDontShow').checked = getBatchTipDismissed();
+  setBatchTipStep(0);
+  batchTipModal.classList.remove('hidden');
+  document.body.classList.add('modal-open');
+  $('#closeBatchTip').focus();
+}
+
+function closeBatchTip() {
+  saveBatchTipPreference();
+  batchTipModal.classList.add('hidden');
+  document.body.classList.remove('modal-open');
+  batchTipReturnFocus?.focus();
+}
+
+function maybeOpenBatchTip() {
+  if (batchTipAutoShown || getBatchTipDismissed()) return;
+  batchTipAutoShown = true;
+  window.setTimeout(() => {
+    if ($('#batchView').classList.contains('active')) openBatchTip();
+  }, 220);
+}
+
+batchTipSlides.forEach((_, index) => {
+  const dot = document.createElement('button');
+  dot.type = 'button';
+  dot.className = 'batch-tip-dot';
+  dot.setAttribute('aria-label', `${index + 1}단계 보기`);
+  dot.addEventListener('click', () => setBatchTipStep(index));
+  $('#batchTipDots').append(dot);
+  batchTipDots.push(dot);
+});
+setBatchTipStep(0);
+
+$('#openBatchTip').addEventListener('click', openBatchTip);
+$('#closeBatchTip').addEventListener('click', closeBatchTip);
+$('#batchTipBackdrop').addEventListener('click', closeBatchTip);
+$('#batchTipPrev').addEventListener('click', () => setBatchTipStep(batchTipStep - 1));
+$('#batchTipNext').addEventListener('click', () => {
+  if (batchTipStep === batchTipSlides.length - 1) closeBatchTip();
+  else setBatchTipStep(batchTipStep + 1);
 });
 
 const helpModal = $('#helpModal');
 let helpReturnFocus = null;
-
-function getHelpFocusableElements() {
-  return [...helpModal.querySelector('.guide-panel').querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])')]
-    .filter(element => !element.disabled && element.getAttribute('aria-hidden') !== 'true');
-}
 
 function openHelp() {
   helpReturnFocus = document.activeElement;
@@ -2416,32 +2501,20 @@ function closeHelp() {
   helpReturnFocus?.focus();
 }
 
-$('#helpButton').addEventListener('click', openHelp);
-$('#openGuideInline').addEventListener('click', openHelp);
+$('#helpButton')?.addEventListener('click', openHelp);
+$('#openGuideTop')?.addEventListener('click', openHelp);
+$('#openGuideInline')?.addEventListener('click', openHelp);
 $('#closeHelp').addEventListener('click', closeHelp);
 $('#dismissHelp').addEventListener('click', closeHelp);
 $('#helpBackdrop').addEventListener('click', closeHelp);
 document.addEventListener('keydown', event => {
-  if (helpModal.classList.contains('hidden')) return;
-  if (event.key === 'Escape') {
-    closeHelp();
+  if (!batchTipModal.classList.contains('hidden')) {
+    if (event.key === 'Escape') closeBatchTip();
+    if (event.key === 'ArrowLeft') setBatchTipStep(batchTipStep - 1);
+    if (event.key === 'ArrowRight') setBatchTipStep(batchTipStep + 1);
     return;
   }
-  if (event.key !== 'Tab') return;
-  const focusable = getHelpFocusableElements();
-  if (!focusable.length) return;
-  const first = focusable[0];
-  const last = focusable[focusable.length - 1];
-  if (!focusable.includes(document.activeElement)) {
-    event.preventDefault();
-    (event.shiftKey ? last : first).focus();
-  } else if (event.shiftKey && document.activeElement === first) {
-    event.preventDefault();
-    last.focus();
-  } else if (!event.shiftKey && document.activeElement === last) {
-    event.preventDefault();
-    first.focus();
-  }
+  if (event.key === 'Escape' && !helpModal.classList.contains('hidden')) closeHelp();
 });
 
 renderSubjectAreas();
