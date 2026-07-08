@@ -2119,8 +2119,14 @@ function setBatchCompetenciesForAll(clear = false) {
 }
 
 function achievementFromText(text) {
-  const value = clean(text || '');
-  const map = { '매우 우수': 'excellent', '우수': 'good', '보통': 'steady', '성장 중': 'growth', excellent: 'excellent', good: 'good', steady: 'steady', growth: 'growth' };
+  const value = clean(text || '').replace(/\s+/g, '');
+  const map = {
+    '매우우수': 'excellent', '매우높음': 'excellent', '상': 'excellent',
+    '우수': 'good', '높음': 'good',
+    '보통': 'steady', '중': 'steady',
+    '성장중': 'growth', '낮음': 'growth', '하': 'growth',
+    excellent: 'excellent', good: 'good', steady: 'steady', growth: 'growth',
+  };
   return map[value] || '';
 }
 
