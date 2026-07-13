@@ -23,6 +23,14 @@ function getSubjectPath(item) {
   return `${areaLabel} / ${getCourseLabel(item.subject)}`;
 }
 
+function getSchoolLevelLabel(item) {
+  const hasMiddleSchoolStandard = Array.isArray(item?.standards)
+    && item.standards.some(code => /^0?9/u.test(String(code).replace(/^\[/u, '').trim()));
+  return hasMiddleSchoolStandard || String(item?.subject || '').startsWith('중등')
+    ? '중학교'
+    : '고등학교';
+}
+
 function getSubjectArea(itemOrArea) {
   if (!itemOrArea) return '';
   if (typeof itemOrArea === 'string') return itemOrArea;
@@ -1466,8 +1474,9 @@ ${competencyGuide ? `${competencyGuide}\n\n` : ''}# 문체와 표현
 
 function buildCommonPrompt(item) {
   const writingProfile = getSubjectWritingProfile(item);
+  const schoolLevel = getSchoolLevelLabel(item);
   return `# 역할
-앞으로 이 대화에서는 한국 고등학교 ${writingProfile.role}의 관점에서 교과세부능력 및 특기사항을 작성해 주세요. 사용자가 학생별 원본 자료를 보내면 아래 원칙에 따라 완성도 높은 최종 문장을 작성하세요.
+앞으로 이 대화에서는 한국 ${schoolLevel} ${writingProfile.role}의 관점에서 교과세부능력 및 특기사항을 작성해 주세요. 사용자가 학생별 원본 자료를 보내면 아래 원칙에 따라 완성도 높은 최종 문장을 작성하세요.
 
 ${buildWritingGuide(item)}
 
@@ -2269,7 +2278,8 @@ function buildBatchPrompt(item, entries, draft) {
   const styleReference = `${buildPromptFocusSection(item)}${styleReferenceContent}`;
 
   const subjectLabel = SUBJECT_PROFILES[getSubjectArea(item)]?.label || '교과';
-  return `# 역할\n한국 고등학교 ${getSubjectWritingProfile(item).role}의 관점에서 아래 학생별 원본 자료를 바탕으로 교과세부능력 및 특기사항을 작성하세요.\n\n# 수행평가 공통 정보\n- 과목: ${getSubjectPath(item)}\n- 수행평가명: ${item.name}\n- 수행평가 활동: ${item.activity}\n\n# 성취기준 — 내부 참고용\n${standards || '등록된 성취기준 없음'}\n\n${buildWritingGuide(item)}\n\n${styleReference}\n# 학급 일괄 작성 추가 규칙\n1. 각 학생을 서로 완전히 독립된 기록으로 처리하고 다른 학생의 행동·평가·주제를 섞지 마세요.\n2. 앞 학생과 뒤 학생의 글자 수, 문장 밀도, 문체 완성도를 같은 기준으로 유지하세요. 뒤쪽 학생을 더 짧게 쓰거나 형식을 생략하지 마세요.\n3. 문체 기준 예시는 문장 길이·어조·구성만 참고하고, 예시 속 학생의 행동·성과·주제·수치 등 내용은 옮기지 마세요.\n4. 설명, 제목, 작성 이유 없이 학생별 완성 문단만 출력하세요.\n5. 학생 식별 번호는 원본 자료에 표시된 번호를 그대로 유지하고, 결번이 있어도 순서대로 다시 번호를 매기지 마세요.\n\n# 학생별 원본 자료\n${studentBlocks}\n\n# 출력 형식\n아래 학생 번호와 순서를 정확히 지키고 모든 학생을 빠짐없이 출력하세요.\n\n${outputLabels}\n\n출력 전에 사실 추가 여부, 학생 간 정보 혼합, 학생 번호 유지, 뒤쪽 학생 분량 축소, 금지 주어, 관찰 불가능한 표현, 종결 어미, 성취기준 노출, 문체 변화, 형식 누락이 없는지 점검하세요.`;
+  const schoolLevel = getSchoolLevelLabel(item);
+  return `# 역할\n한국 ${schoolLevel} ${getSubjectWritingProfile(item).role}의 관점에서 아래 학생별 원본 자료를 바탕으로 교과세부능력 및 특기사항을 작성하세요.\n\n# 수행평가 공통 정보\n- 과목: ${getSubjectPath(item)}\n- 수행평가명: ${item.name}\n- 수행평가 활동: ${item.activity}\n\n# 성취기준 — 내부 참고용\n${standards || '등록된 성취기준 없음'}\n\n${buildWritingGuide(item)}\n\n${styleReference}\n# 학급 일괄 작성 추가 규칙\n1. 각 학생을 서로 완전히 독립된 기록으로 처리하고 다른 학생의 행동·평가·주제를 섞지 마세요.\n2. 앞 학생과 뒤 학생의 글자 수, 문장 밀도, 문체 완성도를 같은 기준으로 유지하세요. 뒤쪽 학생을 더 짧게 쓰거나 형식을 생략하지 마세요.\n3. 문체 기준 예시는 문장 길이·어조·구성만 참고하고, 예시 속 학생의 행동·성과·주제·수치 등 내용은 옮기지 마세요.\n4. 설명, 제목, 작성 이유 없이 학생별 완성 문단만 출력하세요.\n5. 학생 식별 번호는 원본 자료에 표시된 번호를 그대로 유지하고, 결번이 있어도 순서대로 다시 번호를 매기지 마세요.\n\n# 학생별 원본 자료\n${studentBlocks}\n\n# 출력 형식\n아래 학생 번호와 순서를 정확히 지키고 모든 학생을 빠짐없이 출력하세요.\n\n${outputLabels}\n\n출력 전에 사실 추가 여부, 학생 간 정보 혼합, 학생 번호 유지, 뒤쪽 학생 분량 축소, 금지 주어, 관찰 불가능한 표현, 종결 어미, 성취기준 노출, 문체 변화, 형식 누락이 없는지 점검하세요.`;
 }
 
 function renderBatchChunks(item, draft) {
