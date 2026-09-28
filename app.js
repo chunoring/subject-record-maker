@@ -768,6 +768,38 @@ function editAssessment(id) {
   window.scrollTo({ top: $('#assessmentForm').offsetTop - 20, behavior: 'smooth' });
 }
 
+function makeCopiedAssessmentName(name) {
+  const baseName = `${name} (복사본)`;
+  if (!assessments.some(item => item.name === baseName)) return baseName;
+  let index = 2;
+  while (assessments.some(item => item.name === `${baseName} ${index}`)) index += 1;
+  return `${baseName} ${index}`;
+}
+
+function copyAssessment(id) {
+  const item = assessments.find(assessment => assessment.id === id);
+  if (!item) return;
+  const copied = {
+    ...item,
+    id: makeId(),
+    name: makeCopiedAssessmentName(item.name),
+    standards: [...item.standards],
+    optionalFields: item.optionalFields.map(field => ({ ...field })),
+    updatedAt: new Date().toISOString()
+  };
+  const previousAssessments = assessments;
+  assessments = [copied, ...assessments];
+  if (!saveAssessments()) {
+    assessments = previousAssessments;
+    return;
+  }
+  renderAssessmentList();
+  renderAssessmentSelect(copied.id);
+  renderBatchAssessmentSelect(copied.id);
+  editAssessment(copied.id);
+  showToast('수행평가를 복사했습니다. 반 이름에 맞게 제목을 수정해 주세요.');
+}
+
 function deleteAssessment(id) {
   const item = assessments.find(assessment => assessment.id === id);
   if (!item || !confirm(`‘${item.name}’ 수행평가를 삭제할까요?`)) return;
@@ -805,8 +837,9 @@ function renderAssessmentList() {
     info.append(tag, title);
     const menu = document.createElement('div'); menu.className = 'card-menu';
     const edit = document.createElement('button'); edit.type = 'button'; edit.title = '수정'; edit.textContent = '✎'; edit.addEventListener('click', () => editAssessment(item.id));
+    const copy = document.createElement('button'); copy.type = 'button'; copy.title = '복사'; copy.textContent = '⧉'; copy.addEventListener('click', () => copyAssessment(item.id));
     const remove = document.createElement('button'); remove.type = 'button'; remove.title = '삭제'; remove.className = 'delete'; remove.textContent = '×'; remove.addEventListener('click', () => deleteAssessment(item.id));
-    menu.append(edit, remove); top.append(info, menu);
+    menu.append(edit, copy, remove); top.append(info, menu);
     const activity = document.createElement('p'); activity.textContent = item.activity;
     const meta = document.createElement('span'); meta.className = 'assessment-meta'; meta.textContent = `성취기준 ${item.standards.length}개 · 작성 항목 ${1 + item.optionalFields.length}개`;
     const actions = document.createElement('div'); actions.className = 'assessment-actions';
