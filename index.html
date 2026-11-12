@@ -19,7 +19,7 @@
   <title>교과 수행평가 세특 메이커</title>
   <link rel="canonical" href="https://chunoring.github.io/subject-record-maker/" />
   <link rel="icon" href="assets/favicon.svg" type="image/svg+xml" />
-  <link rel="stylesheet" href="styles.css?v=20260623-1" />
+  <link rel="stylesheet" href="styles.css?v=20261112-7" />
   <link rel="stylesheet" href="prompt.css?v=20260618-2" />
   <link rel="stylesheet" href="guide.css?v=20260623-1" />
   <link rel="stylesheet" href="home.css?v=20260623-1" />
@@ -35,7 +35,7 @@
         <div class="hero-title-row">
           <h1>교과 수행평가<br /><em>세특 메이커</em></h1>
           <div class="hero-title-actions">
-            <a class="maker-badge" href="https://chunoring.vercel.app/" target="_blank" rel="noopener noreferrer" aria-label="chunoring 홈페이지 새 창에서 열기"><small>DEVELOPMENT</small><strong>© 인창고 수학왕 chunoring</strong></a>
+            <a class="maker-badge" href="https://chunoring.vercel.app/" target="_blank" rel="noopener noreferrer" aria-label="chunoring 홈페이지 새 창에서 열기"><small>DEVELOPMENT</small><strong>© 인창고 chunoring</strong></a>
             <button type="button" class="top-guide-button" id="openGuideTop" aria-haspopup="dialog" aria-controls="helpModal">
               <span aria-hidden="true">?</span><strong>한눈에 보는 사용방법</strong>
             </button>
@@ -105,6 +105,8 @@
               </select>
             </label>
           </div>
+
+
 
           <label class="field">
             <span>수행평가 주제 및 활동 <b>*</b></span>
@@ -419,13 +421,31 @@
   </div>
 
   <div id="toast" class="toast" role="status"></div>
+
+  <dialog id="localCatalogPanel" class="local-catalog-dialog" aria-labelledby="localCatalogTitle">
+    <div class="local-catalog-heading"><h3 id="localCatalogTitle">교과군·과목·성취기준 관리</h3><div class="local-catalog-heading-info"><button type="button" id="localStorageInfoButton" class="local-storage-info-button" aria-label="로컬 저장 안내" aria-expanded="false" aria-controls="localStorageInfo">i</button></div><button type="button" id="closeLocalCatalog" aria-label="관리창 닫기">닫기</button></div>
+    <p id="localStorageInfo" class="local-storage-info hidden">직접 추가한 교과군·과목·성취기준은 현재 PC의 이 브라우저에만 저장됩니다. 다른 PC·브라우저와 자동으로 공유되지 않습니다. 옮기려면 ‘전체 저장하기’로 백업한 뒤 ‘전체 불러오기’를 사용하세요.</p>
+    <p>직접 추가한 자료를 등록·수정·삭제합니다. 현재 브라우저에만 저장됩니다.</p>
+    <label class="field"><span>작업 선택</span><select id="localCatalogEntry"><option value="">새로 추가</option></select></label>
+    <label class="field"><span>교과군</span><select id="localCatalogArea"></select></label>
+    <label class="field hidden" id="localAreaNameField"><span>새 교과군 이름</span><input id="localAreaName" maxlength="80" placeholder="예: 진로·직업" /></label>
+    <label class="field"><span>기존 과목에 추가</span><select id="localCatalogCourse"></select></label>
+    <label class="field"><span>새 과목명 / 직접 만든 과목명 수정</span><input id="localCourseName" maxlength="80" placeholder="기존 과목에 추가할 때는 비워 두세요" /></label>
+    <label class="field"><span>성취기준 (한 줄에 하나씩)</span><textarea id="localStandardText" rows="7" placeholder="[12탐구01-01] 자료를 분석하고 근거를 제시한다.&#10;코드 없이 내용만 입력해도 자동 번호가 붙습니다."></textarea></label>
+    <p>수정할 때는 내용을 고치거나 해당 줄을 지우세요. 수행평가에서 사용 중인 과목과 성취기준은 삭제할 수 없습니다.</p>
+    <div class="local-catalog-footer"><button type="button" id="deleteLocalCatalog" class="ghost-button hidden">직접 추가한 자료 삭제</button><button type="button" id="saveLocalStandards" class="primary-button">저장하고 선택하기</button></div>
+    <p id="localCatalogStatus" role="status" aria-live="polite"></p>
+  </dialog>
+
   <script src="subject-data.js?v=20260621-1"></script>
   <script src="middle-school-data.js?v=20260623-1"></script>
   <script src="arts-pe-data.js?v=20260622-1"></script>
   <script src="standards.js?v=20260623-1"></script>
   <script src="competencies.js?v=20260622-1"></script>
   <script src="writing-profiles.js?v=20260622-1"></script>
-  <script src="app.js?v=20260928-1"></script>
+  <script src="local-catalog.js?v=20261112-4"></script>
+  <script src="app.js?v=20261112-3"></script>
+  <script src="local-catalog-ui.js?v=20261112-7"></script>
 </body>
 </html>
 

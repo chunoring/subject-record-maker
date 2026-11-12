@@ -99,7 +99,9 @@ function renderSubjectAreas(selectedArea = DEFAULT_SUBJECT_AREA) {
   Object.entries(SUBJECT_PROFILES)
     .sort(([, first], [, second]) => first.label.localeCompare(second.label, 'ko'))
     .forEach(([value, profile]) => select.add(new Option(profile.label, value)));
+  select.add(new Option('＋ 교과군 추가·관리', '__manage__'));
   select.value = SUBJECT_PROFILES[selectedArea] ? selectedArea : '';
+  select.dataset.previous = select.value;
 }
 
 function renderSubjectCourses(area, selectedSubject = '') {
@@ -107,7 +109,9 @@ function renderSubjectCourses(area, selectedSubject = '') {
   select.replaceChildren(new Option(area ? '과목명을 선택하세요' : '교과군을 먼저 선택하세요', ''));
   (SUBJECT_PROFILES[area]?.courses || []).forEach(course => select.add(new Option(course.label, course.value)));
   if ([...select.options].some(option => option.value === selectedSubject)) select.value = selectedSubject;
-  select.disabled = !area;
+  select.add(new Option('＋ 과목 추가·관리', '__manage__'));
+  select.disabled = false;
+  select.dataset.previous = select.value;
 }
 const MAX_RECOVERY_SNAPSHOTS = 3;
 const DEFAULT_EVIDENCE_LABEL = '학생 관찰 근거(학생 활동 내용)';
@@ -274,7 +278,8 @@ function createFullBackup() {
     .filter(([assessmentId]) => assessmentIds.has(assessmentId)));
   return {
     app: '교과 수행평가 세특 메이커',
-    version: 2,
+    version: 3,
+    localCatalog,
     type: 'full-backup',
     exportedAt: new Date().toISOString(),
     assessments,
@@ -504,12 +509,15 @@ async function importFullBackup(file) {
     const source = Array.isArray(parsed) ? parsed : parsed?.assessments;
     if (!Array.isArray(source)) throw new Error('invalid-format');
     const isMathMakerBackup = parsed?.app === '수학 수행평가 세특 메이커';
+    const nextCatalog = mergeLocalCatalog(parsed?.localCatalog || []);
+    applyLocalCatalog(nextCatalog);
     const imported = source.map(normalizeImportedAssessment).filter(Boolean);
-    if (!imported.length) throw new Error('empty-backup');
+    if (!imported.length && !nextCatalog.length) throw new Error('empty-backup');
 
     if (assessments.length || Object.values(batchDrafts).some(batchDraftHasContent)) {
       downloadBackupFile(createFullBackup(), '불러오기전_안전백업');
     }
+    persistLocalCatalog(nextCatalog);
     const merged = new Map(assessments.map(item => [item.id, item]));
     imported.forEach(item => merged.set(item.id, item));
     assessments = [...merged.values()].sort((a, b) => String(b.updatedAt).localeCompare(String(a.updatedAt)));
@@ -528,12 +536,13 @@ async function importFullBackup(file) {
     saveBatchDrafts({ skipSnapshot: true });
     resetAssessmentForm();
     renderAssessmentList();
-    renderAssessmentSelect(imported[0].id);
+    renderAssessmentSelect(imported[0]?.id);
     renderBatchAssessmentSelect();
     const sourceLabel = isMathMakerBackup ? '수학 세특 메이커에서 ' : '';
     showToast(`${sourceLabel}수행평가 ${imported.length}개와 학급 자료 ${importedClassCount}개를 불러왔습니다.`);
   } catch {
-    showToast('올바른 전체 백업 파일이 아닙니다.');
+    applyLocalCatalog(localCatalog);
+    showToast('백업 형식이나 추가 자료의 중복 코드를 확인해 주세요. 저장 공간이 부족한 경우에도 불러올 수 없습니다.');
   } finally {
     $('#fullBackupFileInput').value = '';
   }
@@ -596,7 +605,7 @@ function renderStandards(subject, selectedCodes = []) {
     input.addEventListener('change', updateSelectedStandardCount);
     const text = document.createElement('span');
     const code = document.createElement('strong');
-    code.textContent = `[${standard.code}] `;
+    code.textContent = `[${localStandardDisplayCode(subject, standard.code)}] `;
     text.append(code, document.createTextNode(standard.text));
     label.append(input, text);
     list.append(label);
@@ -610,10 +619,24 @@ function updateSelectedStandardCount() {
 }
 
 $('#assessmentSubjectArea').addEventListener('change', event => {
+  if (event.target.value === '__manage__') {
+    event.target.value = event.target.dataset.previous || '';
+    openLocalCatalog(true);
+    return;
+  }
+  event.target.dataset.previous = event.target.value;
   renderSubjectCourses(event.target.value);
   renderStandards('');
 });
-$('#assessmentSubject').addEventListener('change', event => renderStandards(event.target.value));
+$('#assessmentSubject').addEventListener('change', event => {
+  if (event.target.value === '__manage__') {
+    event.target.value = event.target.dataset.previous || '';
+    openLocalCatalog();
+    return;
+  }
+  event.target.dataset.previous = event.target.value;
+  renderStandards(event.target.value);
+});
 $('#selectAllStandards').addEventListener('click', () => {
   $$('#standardsList input').forEach(input => { input.checked = true; });
   updateSelectedStandardCount();
